@@ -1,0 +1,266 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect } from "react";
+import PublicNavbar from "@/components/shared/PublicNavbar";
+const CAMPUS_IMAGE_SRC =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCtcKqjSUj1-Mge2utuTfZmSm5DhkJhJ0d1T6WhwnOENzr4y3Pie8PxVymCw_VV5WHZFv08xcUjbRdMhAIuViCioUUsWpzzIaacJ7cgzJj78kN4UjVQbgv7DA1ROvO6b_Lru8aEZiSI4IdpNm6v7F6gcFDqfQMVdglmIslFvKV17JeKfemgSNzQY4UzIyzgDOsFq3tXjBMzXsPJB9Xe9FKKJVDkcpre2Dnym_8BaUO-pLFfUPwC0abcP7yB7bHVcgSRsANCIzVN6nU";
+
+export default function HomePage() {
+  useEffect(() => {
+    const counters = document.querySelectorAll<HTMLElement>(".counter");
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const counter = entry.target as HTMLElement;
+          const target = Number(counter.getAttribute("data-target") || 0);
+          const duration = 2000; // 2 seconds
+          const frameDuration = 1000 / 60; // 60fps
+          const totalFrames = Math.round(duration / frameDuration);
+          let frame = 0;
+
+          const updateCount = () => {
+            frame++;
+            const progress = frame / totalFrames;
+            // Ease out quad
+            const easedProgress = progress * (2 - progress);
+            const currentCount = Math.round(target * easedProgress);
+
+            counter.innerText = currentCount.toLocaleString();
+
+            if (frame < totalFrames) {
+              requestAnimationFrame(updateCount);
+            } else {
+              counter.innerText = target.toLocaleString();
+            }
+          };
+
+          requestAnimationFrame(updateCount);
+          observer.unobserve(counter);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    counters.forEach(c => observer.observe(c));
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="bg-surface font-body text-on-surface min-h-screen">
+      <PublicNavbar />
+
+      <main className="min-h-screen">
+        <div className="flex min-h-screen items-stretch pt-16">
+          <section className="z-10 flex w-full flex-col justify-center bg-surface px-12 py-20 lg:w-[45%] lg:px-24">
+            <div className="max-w-xl">
+              <span className="reveal reveal-1 font-label mb-6 block text-xs font-bold uppercase tracking-[0.15em] text-primary">
+                <br />
+              </span>
+              <h1 className="reveal reveal-2 font-headline mb-8 text-[3.5rem] font-extrabold leading-[1.1] tracking-tighter text-primary">
+                Curating the
+                <br />
+                Academic Profile{" "}
+                <span className="inline-block">Management.</span>
+              </h1>
+              <p className="reveal reveal-3 font-body mb-12 max-w-md text-lg text-secondary">
+                The definitive enterprise ecosystem for engineering
+                institutions to centralize, standardize, and showcase faculty
+                excellence. A unified platform bridging the gap between raw
+                academic data and institutional transparency
+              </p>
+              <div className="reveal reveal-4 mb-20">
+                <Link
+                  href="/directory"
+                  className="hero-gradient inline-flex items-center gap-3 rounded-md px-10 py-5 text-lg font-bold text-on-primary shadow-xl shadow-primary/20 transition-transform hover:scale-105"
+                >
+                  <span>Access Public Directory</span>
+                  <span className="material-symbols-outlined">arrow_forward</span>
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 items-start gap-8 border-t border-outline-variant/20 pt-12">
+                <div>
+                  <div className="font-headline mb-1 text-4xl font-extrabold tracking-tighter text-primary">
+                    <span className="counter" data-target="4200">
+                      4,200
+                    </span>
+                    +
+                  </div>
+                  <div className="font-label text-[0.7rem] font-semibold uppercase tracking-widest text-outline">
+                    Faculty Members
+                  </div>
+                </div>
+                <div>
+                  <div className="font-headline mb-1 text-4xl font-extrabold tracking-tighter text-primary">
+                    <span className="counter" data-target="128">
+                      128
+                    </span>
+                  </div>
+                  <div className="font-label text-[0.7rem] font-semibold uppercase tracking-widest text-outline">
+                    Departments
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="relative hidden min-h-[800px] flex-1 overflow-hidden bg-surface-container-high lg:flex">
+            <div className="absolute inset-0 z-0">
+              <Image
+                src={CAMPUS_IMAGE_SRC}
+                alt="University Campus Architecture"
+                fill
+                className="bg-drift object-cover grayscale-[20%] contrast-[1.1]"
+                sizes="(max-width: 1024px) 0vw, 55vw"
+                priority
+              />
+              <div className="absolute inset-0 bg-primary/10 mix-blend-multiply" />
+              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent" />
+            </div>
+            <div className="relative z-10 flex w-full flex-col items-end justify-center gap-6 pr-24">
+              <div className="group w-80 cursor-pointer reveal reveal-3">
+                <div className="card-hover-depth rounded-xl bg-surface-container-lowest/90 p-8 shadow-2xl shadow-black/5 backdrop-blur-md">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-primary-fixed text-on-primary-fixed">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontVariationSettings: '"FILL" 1' }}
+                    >
+                      account_balance
+                    </span>
+                  </div>
+                  <h3 className="font-headline mb-2 text-xl font-bold text-primary">
+                    Faculty Login
+                  </h3>
+                  <p className="font-body mb-6 text-sm leading-relaxed text-secondary">
+                    Access your official academic identity.Management dashboard
+                    for university faculty.
+                  </p>
+                  <Link
+                    href="/login/faculty"
+                    className="flex items-center gap-2 text-sm font-bold text-primary transition-all group hover:opacity-80"
+                  >
+                    <span>Sign In</span>
+                    <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
+                      trending_flat
+                    </span>
+                  </Link>
+                </div>
+              </div>
+              <div className="group w-80 cursor-pointer reveal reveal-4">
+                <div className="card-hover-depth card-dark-hover rounded-xl border border-white/10 bg-primary/95 p-8 shadow-2xl shadow-primary/20 backdrop-blur-md">
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 text-white">
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontVariationSettings: '"FILL" 1' }}
+                    >
+                      admin_panel_settings
+                    </span>
+                  </div>
+                  <h3 className="font-headline mb-2 text-xl font-bold text-white">
+                    Admin/HOD Login
+                  </h3>
+                  <p className="font-body mb-6 text-sm leading-relaxed text-blue-100">
+                    Manage institutional data, approve profiles, and generate
+                    reports for accreditation.
+                  </p>
+                  <Link
+                    href="/login/admin"
+                    className="flex items-center gap-2 text-sm font-bold text-white transition-all group hover:opacity-80"
+                  >
+                    <span>Sign In</span>
+                    <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
+                      trending_flat
+                    </span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+            <div className="absolute bottom-12 right-12 flex items-center gap-4 text-white/60">
+              <div className="h-px w-24 bg-white/40" />
+              <span className="font-label text-[10px] uppercase tracking-widest">
+
+              </span>
+            </div>
+          </section>
+        </div>
+
+        <div className="bg-surface-container-low px-12 py-24 lg:px-24">
+          <div className="mx-auto max-w-7xl">
+            <h2 className="font-headline mb-12 text-3xl font-bold text-primary">
+              Features
+            </h2>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              <div className="card-hover-depth rounded-xl border border-outline-variant/20 bg-surface p-8 shadow-sm hover:border-primary/30">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-primary">
+                  <span className="material-symbols-outlined">database</span>
+                </div>
+                <h4 className="font-headline mb-4 text-xl font-bold text-primary">
+                  Data Integrity
+                </h4>
+                <p className="text-sm leading-relaxed text-secondary font-body">
+                  Standardized profile structures that ensure consistency.
+                  Unified governance of faculty records to eliminate fragmented
+                  data across departments.
+                </p>
+              </div>
+              <div className="card-hover-depth rounded-xl border border-outline-variant/20 bg-surface p-8 shadow-sm hover:border-primary/30">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-primary">
+                  <span className="material-symbols-outlined">verified</span>
+                </div>
+                <h4 className="font-headline mb-4 text-xl font-bold text-primary">
+                  Accreditation Readiness
+                </h4>
+                <p className="text-sm leading-relaxed text-secondary font-body">
+                  Instant institutional-wide analytics providing a bird’s-eye
+                  view of research output and faculty qualifications.
+                </p>
+              </div>
+              <div className="card-hover-depth rounded-xl border border-outline-variant/20 bg-surface p-8 shadow-sm hover:border-primary/30">
+                <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-primary">
+                  <span className="material-symbols-outlined">public</span>
+                </div>
+                <h4 className="font-headline mb-4 text-xl font-bold text-primary">
+                  Global Reach
+                </h4>
+                <p className="text-sm leading-relaxed text-secondary font-body">
+                  Expanding the boundaries of knowledge through cross-border
+                  collaborations and digital accessibility.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer className="relative z-10 w-full bg-slate-100/50 backdrop-blur-sm">
+        <div className="flex flex-col items-center justify-between border-t border-slate-200/20 px-12 py-6 md:flex-row">
+          <div className="font-label text-[10px] uppercase tracking-wide text-slate-500">
+            FPMP
+          </div>
+          <div className="mt-4 flex gap-8 md:mt-0">
+            <Link
+              className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600"
+              href="/privacy"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600"
+              href="/terms"
+            >
+              Terms of Service
+            </Link>
+            <Link
+              className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600"
+              href="/contact"
+            >
+              Contact Support
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
