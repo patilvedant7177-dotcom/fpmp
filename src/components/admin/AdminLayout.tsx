@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   X,
   ArrowLeft,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -22,15 +23,28 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadPending() {
+      const { count } = await supabase
+        .from('faculty_profiles')
+        .select('*', { count: 'exact', head: true })
+        .in('profile_status', ['pending_review', 'revision', 'pending']);
+
+      setPendingCount(count && count > 0 ? count : null);
+    }
+    loadPending();
+  }, [pathname]);
 
   const navItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Faculty", href: "/admin/faculty", icon: Users },
     {
-      name: "Approvals",
+      name: "Reviews",
       href: "/admin/approval",
       icon: CheckSquare,
-      badge: 9,
+      badge: pendingCount,
     },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart2 },
     { name: "Messaging", href: "/admin/messaging", icon: MessageSquare },
@@ -50,9 +64,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* SIDEBAR */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-slate-200 bg-white transition-transform duration-300 md:static md:translate-x-0 ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-slate-200 bg-white transition-transform duration-300 md:static md:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex items-center justify-between p-4 px-3 md:hidden">
           <span className="font-headline text-lg font-bold tracking-tighter text-slate-900">
@@ -79,20 +92,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] transition-colors ${
-                    isActive
+                  className={`group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] transition-colors ${isActive
                       ? "bg-primary-container font-medium text-on-primary-container"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <Icon
                       size={18}
-                      className={`transition-opacity ${
-                        isActive
+                      className={`transition-opacity ${isActive
                           ? "text-primary opacity-100"
                           : "opacity-60 group-hover:text-slate-900 group-hover:opacity-100"
-                      }`}
+                        }`}
                     />
                     <span>{item.name}</span>
                   </div>

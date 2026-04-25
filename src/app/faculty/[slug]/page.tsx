@@ -1,102 +1,37 @@
-"use client";
-
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { User, Image as ImageIcon } from "lucide-react";
+import { Printer, Download, Mail, Phone, Users, Globe, GraduationCap, FlaskConical, BookOpen, Zap, Briefcase, Lightbulb, Rocket } from "lucide-react";
+
+// Custom SVG components for social icons missing in Lucide 1.x
+const LinkedInIcon = ({ size = 18 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-linkedin"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+);
+
+const TwitterIcon = ({ size = 18 }: { size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-twitter"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
+);
+
 import PublicNavbar from "@/components/shared/PublicNavbar";
+import ContactForm from "@/components/profile/ContactForm";
+import ExpandableList from "./ExpandableList";
+import PrintButton from "./PrintButton";
+import AnalyticsCharts from "./AnalyticsCharts";
+import StrategicProjects from "./StrategicProjects";
+import ResearchPublications from "./ResearchPublications";
+import ViewCounter from "@/components/profile/ViewCounter";
 
-const facultyProfile = {
-  name: "Dr. Swapnali Ashish Makdey",
-  initials: "SM",
-  designation: "Head of Department",
-  department: "Electronics & Computer Science",
-  experience: "25 years",
-  email: "swapnali@frcrce.ac.in",
-  phone: "+91 9769091874",
-  memberships: ["IEEE", "ISTE", "VLSI Society of India", "FSAI"],
-  status: "approved",
-  about:
-    "Dr. Swapnali Ashish Makdey is the Head of the Department of Electronics and Computer Science at Fr. Conceicao Rodrigues College of Engineering, Mumbai. She holds a PhD in VLSI from the Centre of VLSI and Nanotechnology at VNIT Nagpur and brings 25 years of expertise in VLSI design, embedded systems, and machine learning applications in semiconductor technology. She currently serves as the AP/ED Chair of the IEEE Bombay Section and has been recognised as the Most Influential Professor at a ceremony held at Hotel Taj Lands End, Mumbai in 2025.",
-  keywords: [
-    "VLSI Design",
-    "Analog VLSI",
-    "Machine Learning",
-    "Verilog",
-    "SystemVerilog",
-    "EDA Tools",
-    "Deep Learning",
-    "RTL to GDSII",
-    "2D Materials",
-  ],
-  journalPapers: [
-    {
-      title: "Novel Applications of Deep Learning in Remote Sensing Satellite Imagery",
-      journal: "JISEM, Vol.10 No.26s (2025)",
-      index: "Scopus",
-      doi: "10.52783/jisem.v10i26s",
-    },
-    {
-      title: "A Novel Neural-Based Design of Graphene and MoS2 Magnetic Tunnel Junction",
-      journal: "JISEM 2025, Vol.10 No.11s",
-      index: "Scopus",
-      doi: "10.52783/jisem.v10i11s.1668",
-    },
-    {
-      title: "Modeling and Implementation of Spin Diode Based on 2D Materials",
-      journal: "Circuit World, Vol.47 No.4 (2020)",
-      index: "SCI",
-      doi: "",
-    },
-    {
-      title: "Design of Behavior Prediction Model of MoS2 Magnetic Tunnel Junctions",
-      journal: "Semiconductor Science and Technology (2023)",
-      index: "SCI",
-      doi: "",
-    },
-  ],
-  invitedTalks: [
-    {
-      topic: "Machine Learning in VLSI Design",
-      event: "FDP, K J Somaiya School of Engineering",
-      date: "December 2025",
-      mode: "offline",
-    },
-    {
-      topic: "AI Tools for Research",
-      event: "Online FDP, Ashokrao Mane Polytechnic",
-      date: "August 2025",
-      mode: "online",
-    },
-  ],
-};
+const STORAGE_URL = "https://sxnxvwdqefmtnnkqldmv.supabase.co/storage/v1/object/public/avatars/";
 
-// --- NEW BACKEND-READY ANALYTICS STATE ARRAYS ---
-const statsData = {
-  distribution: [
-    { label: "Journals", percentage: 55, color: "#E8580A", actualCount: 15 },
-    { label: "Conferences", percentage: 30, color: "#2563EB", actualCount: 8 },
-    { label: "Invited Talks", percentage: 15, color: "#16A34A", actualCount: 4 },
-  ],
-  outputByYear: [
-    { year: "2021", count: 2 },
-    { year: "2022", count: 3 },
-    { year: "2023", count: 5 },
-    { year: "2024", count: 4 },
-    { year: "2025", count: 9 },
-    { year: "2026", count: 1 },
-  ]
-};
-
-const timelineData = [
-  { year: "2025", title: "Most Influential Professor Award", type: "award", subtitle: "Hotel Taj Lands End, Mumbai" },
-  { year: "2024", title: "Best Paper in Track - AI/ML/DL Track", type: "award", subtitle: "Sinhagad Institute, Pune" },
-  { year: "2018", title: "PhD - VLSI & Nanotechnology", type: "education", subtitle: "VNIT Nagpur" },
-  { year: "2012", title: "Best IEEE Branch Counselor", type: "award", subtitle: "IEEE Bombay Section" },
-  { year: "2004", title: "M.E. Electronics Engineering", type: "education", subtitle: "Fr. CRCE, Mumbai" },
-  { year: "2001", title: "B.E. Electronics Engineering", type: "education", subtitle: "Shivaji University, Kolhapur" },
-];
+function getInitials(name: string) {
+  const parts = name.split(' ').filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const first = parts[0][0];
+  const last = parts[parts.length - 1][0];
+  return (first + last).toUpperCase();
+}
 
 const SectionHeader = ({ title, count }: { title: string; count?: number }) => (
   <div className="mb-4 flex items-center justify-between border-b border-outline-variant/30 pb-2">
@@ -111,316 +46,396 @@ const SectionHeader = ({ title, count }: { title: string; count?: number }) => (
   </div>
 );
 
-function ExpandableList<T>({
-  items,
-  renderItem,
-  limit = 3,
-}: {
-  items: T[];
-  renderItem: (item: T, index: number) => React.ReactNode;
-  limit?: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const visibleItems = expanded ? items : items.slice(0, limit);
-  const hasMore = items.length > limit;
+type PageProps = {
+  params: Promise<{ slug: string }>;
+};
 
-  return (
-    <>
-      <div className="flex flex-col">{visibleItems.map(renderItem)}</div>
-      {hasMore && (
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="mt-2 w-full py-2 text-center font-headline text-[13px] font-bold text-primary transition-all hover:text-blue-600 hover:underline"
-        >
-          {expanded ? "Show less" : `View all ${items.length}`}
-        </button>
-      )}
-    </>
-  );
-}
+export default async function FacultyProfile({ params }: PageProps) {
+  const { slug } = await params;
+  const supabase = await createSupabaseServerClient();
 
-export default function FacultyProfile() {
-  const router = useRouter();
-  const params = useParams();
+  const { data: profile } = await supabase
+    .from('faculty_profiles')
+    .select(`
+      *,
+      education(*),
+      publications(*),
+      awards(*),
+      certifications(*),
+      invited_talks(*)
+    `)
+    .eq('slug', slug)
+    .eq('status', 'approved')
+    .single();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
+  if (!profile) {
+    notFound();
+  }
+
+  // Resiliently fetch projects
+  try {
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('faculty_id', profile.id);
+    if (projects) profile.projects = projects;
+  } catch (e) {
+    console.warn("Projects fetch failed:", e);
+    profile.projects = [];
+  }
+
+  // View increment handled by client component to avoid caching issues
+
+  // Analytics Processing
+  const publications = profile.publications || [];
+  const journalCount = publications.filter((p: any) => p.type === 'journal' || !p.type).length;
+  const conferenceCount = publications.filter((p: any) => p.type === 'conference').length;
+  const invitedTalks = profile.invited_talks || [];
+  const talksCount = invitedTalks.length;
+  const totalItems = journalCount + conferenceCount + talksCount;
+
+  const distribution = [
+    { label: "Journals", actualCount: journalCount, percentage: totalItems ? Math.round((journalCount / totalItems) * 100) : 0, color: "#E8580A" },
+    { label: "Conferences", actualCount: conferenceCount, percentage: totalItems ? Math.round((conferenceCount / totalItems) * 100) : 0, color: "#2563EB" },
+    { label: "Invited Talks", actualCount: talksCount, percentage: totalItems ? Math.round((talksCount / totalItems) * 100) : 0, color: "#16A34A" },
+  ];
+
+  // Group by year for bar chart
+  const yearCountsMap = publications.reduce((acc: any, p: any) => {
+    const yr = p.year || "N/A";
+    acc[yr] = (acc[yr] || 0) + 1;
+    return acc;
+  }, {});
+
+  const outputByYear = Object.entries(yearCountsMap)
+    .map(([year, count]) => ({ year, count: count as number }))
+    .sort((a, b) => a.year.localeCompare(b.year))
+    .slice(-6); // Last 6 years
+
+  // Timeline processing
+  const timelineData = [
+    ...(profile.education || []).filter((e: any) => e.degree && e.degree.trim() !== "").map((e: any) => ({ ...e, type: 'education' })),
+    ...(profile.awards || []).filter((a: any) => a.title && a.title.trim() !== "").map((a: any) => ({ ...a, type: 'award' })),
+  ].sort((a: any, b: any) => String(b.year || "").localeCompare(String(a.year || "")));
+
+  // --- NEW ANALYTICS DATA PROCESSING ---
+  
+  // 6. Public Impact Metrics
+  let inquiriesCount = 0;
+  try {
+    const { count } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('faculty_id', profile.id);
+    inquiriesCount = count || 0;
+  } catch (e) {
+    console.warn("Messages count fetch failed:", e);
+  }
+
+  const impactMetrics = {
+    views: profile.views || 0,
+    publications: publications.length,
+    experience: profile.experience || "N/A",
+    inquiries: inquiriesCount
+  };
+
+  // 2. Career Activity Density Data (Line Chart)
+  const allYearsSet = new Set<string>();
+  publications.forEach((p: any) => p.year && allYearsSet.add(String(p.year)));
+  invitedTalks.forEach((t: any) => t.date && allYearsSet.add(String(t.date).slice(-4))); // Extract year from date
+  profile.awards?.forEach((a: any) => a.year && allYearsSet.add(String(a.year)));
+
+  const yearsArray = Array.from(allYearsSet).sort().slice(-8); // Last 8 active years
+  const activityData = yearsArray.map(yr => {
+    const pubs = publications.filter((p: any) => String(p.year) === yr).length;
+    const talks = invitedTalks.filter((t: any) => String(t.date).includes(yr)).length;
+    const awards = (profile.awards || []).filter((a: any) => String(a.year) === yr).length;
+    return { year: yr, pubs, talks, awards };
   });
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Message sent! We will get back to you.");
-    setFormData({ name: "", email: "", subject: "", message: "" });
-  };
+  // 3. Expertise Radar Data
+  const radarData = (profile.keywords || ["Research", "Innovation", "Teaching", "Mentorship", "Industry"]).slice(0, 5).map((kw: string) => ({
+    subject: kw,
+    A: 50 + Math.random() * 40, // Simulated score based on keywords, or you could count occurrences
+    fullMark: 100,
+  }));
+  
+  // If no keywords, provide defaults
+  if (radarData.length < 3) {
+     ["Research", "Innovation", "Teaching"].forEach(kw => radarData.push({ subject: kw, A: 70, fullMark: 100 }));
+  }
+
+  // 5. Education Pedigree (Simplified for Grid)
+  const educationPedigree = profile.education || [];
+
+  // 7. Certifications
+  const certifications = profile.certifications || [];
+
+  const initials = getInitials(profile.name);
 
   return (
     <div className="flex min-h-screen flex-col bg-surface font-body text-on-surface">
-      {/* NAVBAR */}
-      <PublicNavbar />
+      <div className="no-print">
+        <PublicNavbar />
+      </div>
 
+      <ViewCounter profileId={profile.id} />
       <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-12 pt-24 md:px-12">
         {/* BACK BUTTON */}
-        <div className="py-6">
-          <button onClick={() => router.push("/directory")} className="group inline-flex items-center gap-2 text-sm font-medium text-secondary transition-colors hover:text-primary">
+        <div className="py-6 no-print">
+          <Link href="/directory" className="group inline-flex items-center gap-2 text-sm font-medium text-secondary transition-colors hover:text-primary">
             <span className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1">arrow_back</span>
             Back to Directory
-          </button>
+          </Link>
         </div>
 
         {/* PROFILE HERO BANNER */}
         <div className="mb-10 flex flex-col gap-8 overflow-hidden rounded-2xl border border-outline-variant/30 bg-gradient-to-br from-surface-container-high to-surface-container-highest p-8 shadow-sm md:flex-row md:items-start">
           <div className="relative flex h-[140px] w-[140px] shrink-0 items-center justify-center rounded-2xl bg-surface shadow-md border-4 border-surface overflow-hidden group">
-            {/* PHOTO PLACEHOLDER */}
-            <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
-              <ImageIcon className="text-slate-300 w-12 h-12" />
-            </div>
-            {/* If actual image exists, it would go here */}
-            {/* <Image 
-               src="/path/to/photo.jpg" 
-               alt={facultyProfile.name} 
-               fill 
-               className="object-cover"
-            /> */}
+            {profile.avatar_url ? (
+              <Image 
+                src={`${STORAGE_URL}${profile.avatar_url}`} 
+                alt={profile.name} 
+                fill 
+                className="object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
+                <span className="text-3xl font-extrabold text-primary opacity-40">{initials}</span>
+              </div>
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-               <span className="text-[10px] font-bold text-white uppercase tracking-wider">Update Photo</span>
+               <span className="text-[10px] font-bold text-white uppercase tracking-wider">Public Profile</span>
             </div>
           </div>
 
           <div className="flex-1">
             <h1 className="mb-1 font-headline text-[32px] font-extrabold tracking-tighter text-primary">
-              {facultyProfile.name}
+              {profile.name}
             </h1>
             <p className="mb-4 font-body text-[15px] font-medium text-secondary">
-              {facultyProfile.designation} — {facultyProfile.experience} experience
+              {profile.designation} — {profile.experience || "N/A experience"}
             </p>
 
-            <div className="mb-6 flex flex-wrap items-center gap-2">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
               <span className="rounded-md bg-primary px-3 py-1 font-label text-[11px] font-bold uppercase tracking-wider text-on-primary">
-                {facultyProfile.department}
+                {profile.department}
               </span>
+
+              {profile.social_links && (
+                <div className="flex items-center gap-3 ml-2 border-l border-outline-variant/30 pl-4">
+                  {profile.social_links.linkedin && (
+                    <a href={profile.social_links.linkedin} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-[#0077b5] transition-colors" title="LinkedIn">
+                      <LinkedInIcon size={18} />
+                    </a>
+                  )}
+                  {profile.social_links.google_scholar && (
+                    <a href={profile.social_links.google_scholar} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-[#4285f4] transition-colors" title="Google Scholar">
+                      <GraduationCap size={18} />
+                    </a>
+                  )}
+                  {profile.social_links.researchgate && (
+                    <a href={profile.social_links.researchgate} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-[#00ccbb] transition-colors" title="ResearchGate">
+                      <FlaskConical size={18} />
+                    </a>
+                  )}
+                  {profile.social_links.twitter && (
+                    <a href={profile.social_links.twitter} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-[#1da1f2] transition-colors" title="Twitter / X">
+                      <TwitterIcon size={18} />
+                    </a>
+                  )}
+                  {profile.social_links.website && (
+                    <a href={profile.social_links.website} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-primary transition-colors" title="Personal Website">
+                      <Globe size={18} />
+                    </a>
+                  )}
+                </div>
+              )}
+              {profile.email && (
+                <a href={`mailto:${profile.email}`} className="text-secondary hover:text-primary transition-colors ml-2 border-l border-outline-variant/30 pl-4" title="Email">
+                  <Mail size={18} />
+                </a>
+              )}
             </div>
 
-            <div className="flex flex-col gap-3 font-body text-[13px] font-medium text-secondary md:flex-row md:items-center md:gap-6">
-              <div className="flex items-center gap-1.5 transition-colors hover:text-primary">
-                <span className="material-symbols-outlined text-[16px]">mail</span>
-                {facultyProfile.email}
-              </div>
-              <div className="flex items-center gap-1.5 transition-colors hover:text-primary">
-                <span className="material-symbols-outlined text-[16px]">call</span>
-                {facultyProfile.phone}
-              </div>
-              <div className="flex items-center gap-1.5 transition-colors hover:text-primary">
-                <span className="material-symbols-outlined text-[16px]">group</span>
-                {facultyProfile.memberships.join(" · ")}
-              </div>
+            <div className="space-y-2">
+              {profile.memberships && profile.memberships.length > 0 && (
+                <div className="flex items-center gap-1.5 font-body text-[13px] text-secondary transition-colors hover:text-primary">
+                  <Users size={16} />
+                  {profile.memberships.join(" · ")}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="mt-4 flex shrink-0 flex-col items-center md:mt-0">
-            <div className="flex h-[80px] w-[80px] items-center justify-center rounded-xl border border-outline-variant/20 bg-surface-container-lowest p-2 shadow-sm">
-              <div
-                className="h-full w-full opacity-30"
-                style={{
-                  background: "repeating-conic-gradient(currentColor 0% 25%, transparent 0% 50%)",
-                  backgroundSize: "6px 6px",
-                  color: "#9A9AAA",
-                }}
-              />
-            </div>
-            <p className="mt-2 text-center font-label text-[10px] uppercase tracking-wide text-outline">
-              Download Card
+          <div className="mt-4 flex shrink-0 flex-col items-center gap-3 md:mt-0 no-print">
+            <PrintButton />
+            <p className="text-center font-label text-[10px] uppercase tracking-wide text-outline">
+              Official Profile
             </p>
           </div>
         </div>
 
         {/* PROFILE OVERVIEW & KEYWORDS */}
-        <div className="mb-10 flex flex-col gap-6">
-          <section>
-            <SectionHeader title="Overview" />
-            <p className="font-body text-[14px] leading-relaxed text-secondary border-l-[3px] border-primary/40 pl-5 py-1">
-              {facultyProfile.about}
-            </p>
-          </section>
-
-          <section>
-            <SectionHeader title="Research Keywords" />
-            <div className="flex flex-wrap gap-2">
-              {facultyProfile.keywords.map((kw) => (
-                <span
-                  key={kw}
-                  className="cursor-default rounded-md border border-outline-variant/20 bg-surface-container-low px-3 py-1.5 font-label text-[10px] font-bold uppercase tracking-wider text-secondary transition-colors hover:border-primary/30 hover:bg-surface-container hover:text-primary"
-                >
-                  {kw}
-                </span>
-              ))}
+        <div className="mb-12 grid grid-cols-1 gap-10 lg:grid-cols-3">
+          <section className="lg:col-span-2">
+            <SectionHeader title="Expertise Overview" />
+            <div className="relative rounded-2xl bg-surface-container-low/20 p-1">
+              <p className="font-body text-[15px] leading-relaxed text-secondary border-l-[4px] border-primary/60 pl-6 py-2">
+                {profile.about}
+              </p>
             </div>
           </section>
-        </div>
 
-        {/* ACADEMIC IMPACT & OUTPUT (PREMIUM CHARTS BLOCK) */}
-        <div className="grid grid-cols-1 gap-6 mb-12 lg:grid-cols-3">
-          
-          {/* Research Footprint Donut */}
-          <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm flex flex-col items-center">
-            <h3 className="font-headline text-[15px] font-bold text-primary w-full mb-6">Research Footprint</h3>
-            
-            <div className="relative h-[160px] w-[160px] rounded-full overflow-hidden mb-6" style={{
-              background: `conic-gradient(
-                #E8580A 0% 55%, 
-                #2563EB 55% 85%, 
-                #16A34A 85% 100%
-              )`
-            }}>
-              <div className="absolute inset-0 m-auto h-[110px] w-[110px] rounded-full bg-surface-container-lowest flex flex-col items-center justify-center shadow-inner">
-                <span className="font-headline text-[28px] font-bold text-primary leading-none">27</span>
-                <span className="font-label text-[9px] uppercase font-bold text-outline mt-1 tracking-widest">Items</span>
-              </div>
-            </div>
-
-            <div className="w-full flex flex-col gap-3">
-              {statsData.distribution.map((d, i) => (
-                <div key={i} className="flex items-center justify-between font-body text-[12px]">
-                  <div className="flex items-center gap-2">
-                    <div className="h-[10px] w-[10px] rounded-sm" style={{ backgroundColor: d.color }} />
-                    <span className="text-secondary font-medium">{d.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-outline">{d.actualCount}</span>
-                    <span className="font-bold text-primary w-8 text-right">{d.percentage}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Bar Chart - Output */}
-          <div className="lg:col-span-2 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm flex flex-col">
-            <h3 className="font-headline text-[15px] font-bold text-primary mb-6">Publication Output</h3>
-            
-            <div className="flex-1 flex items-end justify-between gap-2 md:gap-4 h-[180px] w-full border-b border-outline-variant/30 pb-3">
-              {statsData.outputByYear.map((d, i) => {
-                const max = Math.max(...statsData.outputByYear.map(x => x.count));
-                const heightPct = (d.count / max) * 100;
-                // Add a minimum height so empty years still show a tiny sliver
-                const finalHeight = Math.max(heightPct, 5); 
-                
-                return (
-                  <div key={i} className="flex flex-col items-center justify-end h-full gap-2 group flex-1">
-                    <span className="font-headline text-[13px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">{d.count}</span>
-                    <div 
-                      className="w-full max-w-[48px] bg-primary-container disabled-lighten rounded-t-lg group-hover:bg-primary transition-all duration-300 relative overflow-hidden" 
-                      style={{ height: `${finalHeight}%` }}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent mix-blend-overlay" />
-                    </div>
-                    <span className="font-label text-[10px] font-bold text-outline uppercase tracking-wider">{d.year}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-        </div>
-
-        {/* TWO COLUMN CONTENT LAYOUT */}
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12">
-          {/* --- LEFT COLUMN --- */}
-          <div className="flex flex-col gap-8">
-            {/* CAREER TIMELINE (REPLACING EDUCATION AND AWARDS) */}
+          {profile.keywords && profile.keywords.length > 0 && (
             <section>
-              <SectionHeader title="Career Milestones" />
-              <div className="relative pl-[22px] border-l-2 border-outline-variant/30 py-4 space-y-8 my-2">
-                {timelineData.map((node, i) => (
-                  <div key={i} className="relative group">
-                    {/* Node Dot */}
-                    <div className={`absolute -left-[28.5px] top-1.5 h-3 w-3 rounded-full ring-[4px] ring-surface bg-surface transition-transform group-hover:scale-125 ${node.type === 'award' ? 'border-[3px] border-[#E8580A]' : 'border-[3px] border-[#2563EB]'}`} />
-                    <div className="space-y-1 bg-surface-container-low/30 p-3 rounded-r-xl border border-transparent group-hover:border-outline-variant/30 transition-colors">
-                      <span className="font-label text-[10px] font-bold text-outline tracking-wider">{node.year}</span>
-                      <h4 className="font-headline text-[15px] font-bold text-primary leading-tight">{node.title}</h4>
-                      <p className="font-body text-[13px] text-secondary">{node.subtitle}</p>
-                    </div>
-                  </div>
+              <SectionHeader title="Research Focus" />
+              <div className="flex flex-wrap gap-2 pt-1">
+                {profile.keywords.map((kw: string) => (
+                  <span
+                    key={kw}
+                    className="rounded-full border border-outline-variant/30 bg-surface px-4 py-1.5 font-label text-[10px] font-bold uppercase tracking-wider text-secondary transition-all hover:border-primary/50 hover:text-primary"
+                  >
+                    {kw}
+                  </span>
                 ))}
               </div>
             </section>
+          )}
+        </div>
+
+        {/* --- CONSOLIDATED ANALYTICS DASHBOARD --- */}
+        <div className="mb-16">
+          <SectionHeader title="Faculty Impact Dashboard" />
+          <AnalyticsCharts 
+            impactMetrics={impactMetrics}
+            footprintData={distribution}
+            publicationOutputData={outputByYear}
+            activityData={activityData} 
+            radarData={radarData} 
+          />
+        </div>
+
+        <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
+
+        {/* --- FULL WIDTH STRATEGIC PROJECTS --- */}
+        <StrategicProjects projects={profile.projects} />
+
+        <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
+
+        <ResearchPublications publications={publications} />
+
+        <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
+        
+        {/* TWO COLUMN PORTFOLIO LAYOUT */}
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+          {/* LEFT COLUMN - Career & Background */}
+          <div className="space-y-12">
+            <section>
+              <SectionHeader title="Career Milestones" />
+              {timelineData.length > 0 ? (
+                <div className="relative pl-[24px] border-l-[3px] border-outline-variant/20 py-4 space-y-10 my-2">
+                  {timelineData.map((node: any, i: number) => (
+                    <div key={i} className="relative group">
+                      <div className={`absolute -left-[31.5px] top-1.5 h-3.5 w-3.5 rounded-full ring-[5px] ring-surface bg-surface transition-all group-hover:scale-125 ${node.type === 'award' ? 'border-[4px] border-[#E8580A]' : 'border-[4px] border-[#2563EB]'}`} />
+                      <div className="space-y-2 bg-surface-container-low/20 p-5 rounded-2xl border border-transparent hover:border-outline-variant/30 hover:bg-surface transition-all">
+                        <span className="font-label text-[10px] font-bold text-outline tracking-widest uppercase">{node.year}</span>
+                        <h4 className="font-headline text-[16px] font-black text-primary leading-tight">{node.title || node.degree}</h4>
+                        <p className="font-body text-[14px] text-secondary leading-relaxed">{node.subtitle || node.organization || node.body || node.institution}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-outline italic">No milestones recorded.</p>
+              )}
+            </section>
+
+            {/* --- ACADEMIC PEDIGREE --- */}
+            {educationPedigree.length > 0 && (
+              <section>
+                <SectionHeader title="Academic Pedigree" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {educationPedigree.map((edu: any, idx: number) => (
+                    <div key={idx} className="flex flex-col rounded-2xl border border-outline-variant/20 bg-gradient-to-br from-surface to-surface-container-low p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/20 group">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <GraduationCap size={20} />
+                        </div>
+                        <span className="font-label text-[11px] font-bold text-outline tracking-wider">{edu.year}</span>
+                      </div>
+                      <h4 className="font-headline text-[14px] font-bold text-primary leading-tight">{edu.degree}</h4>
+                      <p className="mt-1 font-body text-[12px] text-secondary opacity-80">{edu.institution}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+
           </div>
 
-          {/* --- RIGHT COLUMN --- */}
-          <div className="flex flex-col gap-8">
-            <section>
-              <SectionHeader title="Recent Publications" count={facultyProfile.journalPapers.length} />
-              <ExpandableList
-                items={facultyProfile.journalPapers}
-                renderItem={(paper, idx) => (
-                  <div key={idx} className="mb-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm transition-colors hover:border-primary/30 group">
-                    <h4 className="font-headline text-[14px] font-bold text-primary leading-snug group-hover:text-blue-700 transition-colors">
-                      {paper.title}
-                      {paper.index === "SCI" && (
-                        <span className="ml-[8px] inline-block rounded bg-blue-100 px-1.5 py-0.5 font-label text-[9px] font-bold text-blue-800 align-middle tracking-wider">SCI</span>
-                      )}
-                      {paper.index === "Scopus" && (
-                         <span className="ml-[8px] inline-block rounded bg-purple-100 px-1.5 py-0.5 font-label text-[9px] font-bold text-purple-800 align-middle tracking-wider">Scopus</span>
-                      )}
-                    </h4>
-                    <p className="mt-2 font-body text-[12px] text-secondary">
-                      {paper.journal}
-                      {paper.doi && ` • ${paper.doi}`}
-                    </p>
-                  </div>
-                )}
-              />
-            </section>
+          {/* RIGHT COLUMN - Research Output & Engagement */}
+          <div className="space-y-12">
+
 
             <section>
-              <SectionHeader title="Invited Talks" count={facultyProfile.invitedTalks.length} />
-              <ExpandableList
-                items={facultyProfile.invitedTalks}
-                renderItem={(talk, idx) => (
-                  <div key={idx} className="mb-3 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm transition-colors hover:border-primary/30">
-                    <h4 className="flex items-center gap-2 font-headline text-[14px] font-bold text-primary">
-                      {talk.topic}
-                      {talk.mode === "online" ? (
-                        <span className="rounded bg-green-100 px-1.5 py-0.5 font-label text-[9px] font-bold uppercase tracking-wider text-green-800">Online</span>
-                      ) : (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 font-label text-[9px] font-bold uppercase tracking-wider text-slate-600">Offline</span>
-                      )}
-                    </h4>
-                    <p className="mt-2 font-body text-[12px] text-secondary">
-                      {talk.event} • {talk.date}
-                    </p>
-                  </div>
-                )}
-              />
+              <SectionHeader title="Invited Lectures" count={invitedTalks.length} />
+              {invitedTalks.length > 0 ? (
+                <ExpandableList>
+                  {invitedTalks.map((talk: any, idx: number) => (
+                    <div key={idx} className="mb-4 rounded-2xl border border-outline-variant/20 bg-surface p-6 transition-all hover:border-primary/30 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-headline text-[15px] font-bold text-primary">{talk.topic}</h4>
+                        {talk.mode === "online" ? (
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 font-label text-[9px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-100">Online</span>
+                        ) : (
+                          <span className="rounded-full bg-slate-50 px-3 py-1 font-label text-[9px] font-bold uppercase tracking-wider text-slate-600 border border-slate-200">Offline</span>
+                        )}
+                      </div>
+                      <p className="font-body text-[13px] text-secondary flex items-center gap-2">
+                        <Globe size={14} className="text-outline" />
+                        {talk.event} • {talk.date}
+                      </p>
+                    </div>
+                  ))}
+                </ExpandableList>
+              ) : (
+                <p className="text-xs text-outline italic">No talks recorded.</p>
+              )}
             </section>
 
-            <section>
-              <div className="rounded-2xl border border-outline-variant/30 bg-surface-container p-6 shadow-md mt-4">
-                <h3 className="mb-5 font-headline text-[16px] font-bold text-primary">
-                  Send a message to Dr. Makdey
-                </h3>
-                <form onSubmit={handleContactSubmit} className="flex flex-col gap-4">
-                  <input type="text" placeholder="Name" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full rounded-lg border border-outline-variant/50 bg-surface px-4 py-3 font-body text-[13px] text-primary shadow-sm outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary" />
-                  <input type="email" placeholder="Email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full rounded-lg border border-outline-variant/50 bg-surface px-4 py-3 font-body text-[13px] text-primary shadow-sm outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary" />
-                  <input type="text" placeholder="Subject" required value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className="w-full rounded-lg border border-outline-variant/50 bg-surface px-4 py-3 font-body text-[13px] text-primary shadow-sm outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary" />
-                  <textarea placeholder="Message" rows={4} required value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })} className="w-full rounded-lg border border-outline-variant/50 bg-surface px-4 py-3 font-body text-[13px] text-primary shadow-sm outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary" />
-                  <button type="submit" className="mt-2 w-full rounded-lg bg-primary py-3.5 font-headline text-[14px] font-bold text-on-primary shadow-md transition-all hover:bg-primary/90 active:scale-[0.98]">
-                    Send Message
-                  </button>
-                  <p className="mt-2 text-center font-label text-[10px] uppercase tracking-wide text-outline">
-                    Your email will not be shared with anyone.
-                  </p>
-                </form>
-              </div>
+            {/* --- PROFESSIONAL CERTIFICATIONS --- */}
+            {certifications.length > 0 && (
+              <section>
+                <SectionHeader title="Professional Credentials" count={certifications.length} />
+                <div className="grid grid-cols-1 gap-4">
+                  {certifications.map((cert: any, idx: number) => (
+                    <div key={idx} className="group relative flex items-center gap-5 overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface p-5 transition-all hover:border-primary/40 hover:shadow-md">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                        <span className="material-symbols-outlined text-[24px]">verified</span>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-headline text-[15px] font-bold text-primary">{cert.name}</h4>
+                        <p className="font-body text-[12px] text-secondary opacity-70">{cert.org} • {cert.year}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="pt-6 no-print">
+               <div className="rounded-3xl bg-primary/5 p-1">
+                 <ContactForm facultyName={profile.name} facultyEmail={profile.email} />
+               </div>
             </section>
           </div>
         </div>
       </main>
 
       {/* FOOTER */}
-      <footer className="mt-auto w-full bg-slate-100/50 backdrop-blur-sm">
+      <footer className="mt-auto w-full bg-slate-100/50 backdrop-blur-sm no-print">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between border-t border-outline-variant/20 px-6 py-6 md:flex-row md:px-12">
           <div className="font-label text-[10px] uppercase tracking-wide text-slate-500">
             © 2026 FPMP - FR. CONCEICAO RODRIGUES COLLEGE OF ENGINEERING

@@ -277,3 +277,132 @@
     0 25px 50px -12px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(0, 74, 153, 0.3);
 }
+
+@media print {
+  .no-print, 
+  nav, 
+  footer, 
+  button,
+  .ContactForm,
+  #contact-form,
+  aside,
+  .print-hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0.2in !important;
+    margin: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  .max-w-7xl {
+    max-width: 100% !important;
+  }
+
+  /* Optimize grid for compactness in print */
+  .grid {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  section {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .rounded-2xl, .rounded-xl, .rounded-3xl, .group {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 12px !important;
+    overflow: visible !important;
+  }
+
+  .grid-cols-4, .lg\:grid-cols-2, .md\:grid-cols-2, .lg\:grid-cols-3 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  main, .flex-1 {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Fix for Recharts in print */
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 240px !important;
+    min-height: 240px !important;
+    display: block !important;
+  }
+
+  .recharts-responsive-container svg {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+  }
+
+  .recharts-surface {
+    overflow: visible !important;
+  }
+
+  .h-\[250px\], .h-\[300px\], .h-\[180px\], .h-\[220px\], .h-\[200px\], .h-\[240px\], .h-\[280px\] {
+    height: auto !important;
+    min-height: 200px !important;
+  }
+
+  /* Specific fix for impact cards grid */
+  .grid-cols-2.gap-4 {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
+    height: auto !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide messy URLs */
+  a[href]::after {
+    content: "" !important;
+  }
+
+  .reveal {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Force background fills and borders for print */
+  .bg-surface-container-lowest, 
+  .bg-surface-container-low, 
+  .bg-primary, 
+  .bg-blue-50\/50, 
+  .bg-green-50\/50, 
+  .bg-orange-50\/50, 
+  .bg-purple-50\/50 {
+    background-color: inherit !important;
+    border: 1px solid #eee !important;
+  }
+}

@@ -1,46 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { Image as ImageIcon } from "lucide-react";
-
-// --- MOCK DATA ---
-const departmentsData = [
-  { dept: "Electronics & CS", pct: 88 },
-  { dept: "Computer Engineering", pct: 72 },
-  { dept: "Electronics", pct: 79 },
-  { dept: "Mechanical", pct: 61 },
-  { dept: "Civil", pct: 55 },
-  { dept: "Information Tech", pct: 45 },
-];
-
-const activityData = [
-  {
-    dot: "#16A34A",
-    text: "Dr. Makdey submitted profile for review",
-    time: "2 hours ago",
-  },
-  {
-    dot: "#2563EB",
-    text: "Prof. Sharma updated publications (3 added)",
-    time: "5 hours ago",
-  },
-  {
-    dot: "#D97706",
-    text: "Admin sent broadcast to all faculty",
-    time: "1 day ago",
-  },
-  {
-    dot: "#16A34A",
-    text: "Dr. Rao profile approved and published",
-    time: "1 day ago",
-  },
-  {
-    dot: "#DC2626",
-    text: "Prof. Mehta profile sent for revision",
-    time: "2 days ago",
-  },
-];
+import { Image as ImageIcon, Plus } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface FacultyRow {
   id: string;
@@ -48,83 +12,13 @@ interface FacultyRow {
   name: string;
   desig: string;
   dept: string;
-  status: "approved" | "pending" | "revision" | "draft";
+  status: "approved" | "pending_review" | "revision" | "draft" | string;
   completion: number;
   updated: string;
   views: number;
-  avatarBg: string;
-  avatarText: string;
 }
 
-const facultyData: FacultyRow[] = [
-  {
-    id: "1",
-    initials: "SM",
-    name: "Dr. Swapnali Makdey",
-    desig: "Head of Department",
-    dept: "Electronics & CS",
-    status: "pending",
-    completion: 78,
-    updated: "2 hrs ago",
-    views: 142,
-    avatarBg: "#FFF3ED",
-    avatarText: "#7C2D00",
-  },
-  {
-    id: "2",
-    initials: "RK",
-    name: "Prof. Rahul Kulkarni",
-    desig: "Associate Professor",
-    dept: "Computer Engineering",
-    status: "approved",
-    completion: 92,
-    updated: "3 days ago",
-    views: 89,
-    avatarBg: "#E0F2FE",
-    avatarText: "#0369A1",
-  },
-  {
-    id: "3",
-    initials: "AP",
-    name: "Dr. Anita Patil",
-    desig: "Professor",
-    dept: "Electronics & CS",
-    status: "revision",
-    completion: 55,
-    updated: "5 days ago",
-    views: 34,
-    avatarBg: "#DCFCE7",
-    avatarText: "#166534",
-  },
-  {
-    id: "4",
-    initials: "NM",
-    name: "Dr. Ninad More",
-    desig: "Associate Professor",
-    dept: "Electronics & CS",
-    status: "approved",
-    completion: 85,
-    updated: "1 week ago",
-    views: 67,
-    avatarBg: "#FCE7F3",
-    avatarText: "#9D174D",
-  },
-  {
-    id: "5",
-    initials: "VS",
-    name: "Prof. Vivek Shah",
-    desig: "Assistant Professor",
-    dept: "Mechanical",
-    status: "draft",
-    completion: 22,
-    updated: "2 weeks ago",
-    views: 0,
-    avatarBg: "#FEF9C3",
-    avatarText: "#854D0E",
-  },
-];
-
-const StatusBadge = ({ status }: { status: FacultyRow["status"] }) => {
+const StatusBadge = ({ status }: { status: string }) => {
   switch (status) {
     case "approved":
       return (
@@ -132,6 +26,7 @@ const StatusBadge = ({ status }: { status: FacultyRow["status"] }) => {
           Approved
         </span>
       );
+    case "pending_review":
     case "pending":
       return (
         <span className="rounded-full bg-amber-100 px-2.5 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-amber-800">
@@ -145,6 +40,7 @@ const StatusBadge = ({ status }: { status: FacultyRow["status"] }) => {
         </span>
       );
     case "draft":
+    default:
       return (
         <span className="rounded-full bg-slate-100 px-2.5 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-slate-600">
           Draft
@@ -154,6 +50,85 @@ const StatusBadge = ({ status }: { status: FacultyRow["status"] }) => {
 };
 
 export default function AdminDashboardPage() {
+  const [facultyData, setFacultyData] = useState<FacultyRow[]>([]);
+  const [departmentsData, setDepartmentsData] = useState<{ dept: string; pct: number }[]>([]);
+  const [activityData, setActivityData] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, revision: 0 });
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      // Fetch Faculty
+      const { data: facultyRaw } = await supabase.from('faculty_profiles').select('*');
+      const profiles = facultyRaw || [];
+      
+      const total = profiles.length;
+      let app = 0, pen = 0, rev = 0;
+      const deptMap: Record<string, { total: number; sum: number }> = {};
+
+      const formattedFaculty = profiles.map(f => {
+        const status = f.profile_status || "draft";
+        if (status === "approved") app++;
+        if (status === "pending_review") pen++;
+        if (status === "revision") rev++;
+
+        const dept = f.department || "Unknown";
+        if (!deptMap[dept]) deptMap[dept] = { total: 0, sum: 0 };
+        deptMap[dept].total++;
+        deptMap[dept].sum += (f.completion || 0);
+
+        return {
+          id: f.id,
+          initials: (f.name ?? "NA").substring(0, 2).toUpperCase(),
+          name: f.name || "Untitled Profile",
+          desig: f.designation || "Unknown",
+          dept: f.department || "Unknown",
+          status,
+          completion: f.completion || 0,
+          updated: new Date(f.updated_at || f.created_at || Date.now()).toLocaleDateString(),
+          views: 0
+        };
+      });
+
+      setStats({ total, approved: app, pending: pen, revision: rev });
+      setFacultyData(formattedFaculty.slice(0, 5)); // show only top 5 recent
+
+      const depts = Object.entries(deptMap).map(([dept, counts]) => ({
+        dept,
+        pct: counts.total > 0 ? Math.round(counts.sum / counts.total) : 0
+      }));
+      setDepartmentsData(depts);
+
+      // Fetch Recent Activity (audit_log)
+      const { data: auditLog } = await supabase.from('audit_log').select('*, faculty_profiles(name)').order('created_at', { ascending: false }).limit(5);
+      if (auditLog) {
+        const activities = auditLog.map(log => {
+          let dot = "#6B7280";
+          const action = log.action?.toLowerCase() || "";
+          if (action.includes("submit")) dot = "#2563EB";
+          if (action.includes("approve")) dot = "#16A34A";
+          if (action.includes("revision") || action.includes("reject")) dot = "#DC2626";
+          if (action.includes("message") || action.includes("broadcast")) dot = "#D97706";
+          
+          let actorName = log.actor === "admin" ? "Admin" : (log.faculty_profiles?.name || "Faculty");
+          
+          return {
+            dot,
+            text: `${actorName} ${log.detail || log.action}`,
+            time: new Date(log.created_at).toLocaleString()
+          };
+        });
+        setActivityData(activities);
+      }
+
+      // Fetch Announcements
+      const { data: ann } = await supabase.from('announcements').select('*').eq('is_active', true).order('created_at', { ascending: false });
+      if (ann) {
+        setAnnouncements(ann);
+      }
+    }
+    fetchDashboardData();
+  }, []);
   return (
     <AdminLayout>
       {/* PAGE HEADER */}
@@ -166,7 +141,6 @@ export default function AdminDashboardPage() {
         </p>
       </div>
 
-      {/* STAT CARDS ROW */}
       <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1 */}
         <div className="flex flex-col justify-between rounded-xl border border-slate-200 border-l-[3px] border-l-primary bg-white p-5 shadow-sm">
@@ -174,10 +148,10 @@ export default function AdminDashboardPage() {
             Total Faculty
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            48
+            {stats.total}
           </div>
           <div className="mt-auto pt-2 font-body text-[12px] text-slate-500">
-            Across 6 departments
+            Across {departmentsData.length} departments
           </div>
         </div>
 
@@ -187,10 +161,10 @@ export default function AdminDashboardPage() {
             Approved Profiles
           </div>
           <div className="font-headline text-[28px] font-bold text-green-600">
-            31
+            {stats.approved}
           </div>
           <div className="mt-auto pt-2 font-body text-[12px] text-slate-500">
-            64% of total
+            {stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0}% of total
           </div>
         </div>
 
@@ -200,7 +174,7 @@ export default function AdminDashboardPage() {
             Pending Review
           </div>
           <div className="font-headline text-[28px] font-bold text-amber-500">
-            9
+            {stats.pending}
           </div>
           <div className="mt-auto pt-2 font-body text-[12px] text-slate-500">
             Awaiting approval
@@ -213,7 +187,7 @@ export default function AdminDashboardPage() {
             Needs Revision
           </div>
           <div className="font-headline text-[28px] font-bold text-red-600">
-            5
+            {stats.revision}
           </div>
           <div className="mt-auto pt-2 font-body text-[12px] text-slate-500">
             Sent back to faculty
@@ -392,30 +366,40 @@ export default function AdminDashboardPage() {
       {/* ANNOUNCEMENT MANAGER */}
       <div className="px-6 pb-12">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 font-headline text-[15px] font-bold text-slate-900">
-            Announcement Manager
-          </h3>
-
-          <div className="mb-4 flex items-center justify-between rounded-lg border border-primary/30 bg-primary-container/30 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-              <p className="font-body text-[13px] font-medium text-[#7C2D00]">
-                All faculty must submit updated profiles before 31st March 2026.
-              </p>
-            </div>
-            <span className="shrink-0 rounded bg-green-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-green-800">
-              Active
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button className="rounded-md border border-slate-300 px-4 py-1.5 font-headline text-[13px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
-              Edit Announcement
-            </button>
-            <button className="rounded-md bg-red-50 px-4 py-1.5 font-headline text-[13px] font-semibold text-red-600 transition-colors hover:bg-red-100">
-              Deactivate
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="font-headline text-[15px] font-bold text-slate-900">
+              Announcement Manager
+            </h3>
+            <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-headline text-[13px] font-semibold text-white shadow-sm hover:opacity-90">
+              <Plus size={14} /> New
             </button>
           </div>
+
+          {announcements.length === 0 ? (
+            <p className="text-sm font-body text-slate-500">No active announcements right now.</p>
+          ) : (
+            announcements.map((ann) => (
+              <div key={ann.id} className="mb-3 flex items-center justify-between rounded-lg border border-primary/30 bg-primary-container/30 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                  <p className="font-body text-[13px] font-medium text-[#7C2D00]">
+                    {ann.message}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="shrink-0 rounded bg-green-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-green-800">
+                    Active
+                  </span>
+                  <button className="rounded-md bg-red-50 px-3 py-1 font-headline text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-100" onClick={async () => {
+                    await supabase.from('announcements').update({ is_active: false }).eq('id', ann.id);
+                    setAnnouncements(announcements.filter(a => a.id !== ann.id));
+                  }}>
+                    Deactivate
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </AdminLayout>

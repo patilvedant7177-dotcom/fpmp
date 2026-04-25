@@ -1,35 +1,51 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { CheckSquare } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-const pendingApprovals = [
-  {
-    id: "1",
-    name: "Dr. Swapnali Makdey",
-    dept: "Electronics & CS",
-    status: "pending",
-    submitted: "2 hours ago",
-    type: "Profile Update",
-  },
-  {
-    id: "3",
-    name: "Dr. Anita Patil",
-    dept: "Electronics & CS",
-    status: "revision",
-    submitted: "5 days ago",
-    type: "New Publication",
-  },
-];
+interface ApprovalRow {
+  id: string;
+  name: string;
+  dept: string;
+  status: string;
+  submitted: string;
+  type: string;
+}
 
 export default function ApprovalsPage() {
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('faculty_profiles')
+        .select('id, name, department, profile_status, updated_at, created_at')
+        .in('profile_status', ['pending_review', 'revision', 'pending']);
+      
+      if (data) {
+        setPendingApprovals(data.map(f => ({
+          id: f.id,
+          name: f.name || "Unknown",
+          dept: f.department || "Unknown",
+          status: f.profile_status || "pending",
+          submitted: new Date(f.updated_at || f.created_at || Date.now()).toLocaleDateString(),
+          type: "Profile Update"
+        })));
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
   return (
     <AdminLayout>
       <div className="px-6 pt-6 mb-6">
         <h1 className="flex items-center gap-2 font-headline text-[22px] font-bold tracking-tight text-slate-900">
           <CheckSquare size={24} className="text-primary" />
-          Pending Approvals
+          Pending Reviews
         </h1>
         <p className="mt-1 font-body text-[14px] text-slate-500">
           Items requiring administrator review and moderation.
@@ -69,7 +85,7 @@ export default function ApprovalsPage() {
                       {req.dept}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 font-label text-[10px] font-bold text-blue-700 tracking-wider">
+                      <span className={`rounded-full px-2.5 py-1 font-label text-[10px] font-bold tracking-wider ${req.status === 'revision' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
                         {req.type}
                       </span>
                     </td>
@@ -89,9 +105,15 @@ export default function ApprovalsPage() {
               </tbody>
             </table>
             
-            {pendingApprovals.length === 0 && (
+            {loading && (
               <div className="py-12 text-center text-slate-500 text-sm font-body">
-                No pending approvals at this time.
+                Loading reviews...
+              </div>
+            )}
+            
+            {!loading && pendingApprovals.length === 0 && (
+              <div className="py-12 text-center text-slate-500 text-sm font-body">
+                No pending reviews at this time.
               </div>
             )}
           </div>

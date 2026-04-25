@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
   Send,
@@ -9,102 +9,40 @@ import {
   Clock,
   RotateCcw,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface FacultyOption {
   id: string;
   name: string;
+  email: string;
 }
 
-const mockFaculty: FacultyOption[] = [
-  { id: "1", name: "Dr. Swapnali Makdey" },
-  { id: "2", name: "Prof. Rahul Kulkarni" },
-  { id: "3", name: "Dr. Anita Patil" },
-  { id: "4", name: "Dr. Ninad More" },
-  { id: "5", name: "Prof. Vivek Shah" },
-];
-
-interface SentMessage {
-  id: number;
-  type: "Broadcast" | "Direct";
+interface DBMessage {
+  id: string;
+  from_admin: boolean;
+  to_faculty: string | null;
   subject: string;
-  to: string;
-  sentAt: string;
-  sent: number;
-  read: number;
   body: string;
+  sent_at: string;
+  faculty_profiles?: {
+    name: string;
+    email: string;
+  } | null;
 }
 
-const mockSentMessages: SentMessage[] = [
-  {
-    id: 1,
-    type: "Broadcast",
-    subject: "Action Required: Update Profile Before 31st March",
-    to: "All 48 faculty",
-    sentAt: "Apr 2, 2026 · 10:30 AM",
-    sent: 48,
-    read: 31,
-    body: "Dear Faculty Member,\n\nThis is a reminder that all faculty profiles must be updated and submitted for review before 31st March 2026.\n\nPlease log in to the Faculty Portal and ensure your profile is complete.\n\nRegards,\nFPMP Admin",
-  },
-  {
-    id: 2,
-    type: "Direct",
-    subject: "Profile Review — Action Required",
-    to: "Dr. Swapnali Makdey",
-    sentAt: "Apr 2, 2026 · 9:15 AM",
-    sent: 1,
-    read: 1,
-    body: "Please update your FDP sections from 2024–2025 as soon as possible so we can finalize approval.",
-  },
-  {
-    id: 3,
-    type: "Direct",
-    subject: "Revision Requested — Please Update Publications",
-    to: "Dr. Anita Patil",
-    sentAt: "Mar 30, 2026 · 3:45 PM",
-    sent: 1,
-    read: 0,
-    body: "Please add the DOIs for your Scopus indexed publications so they reflect correctly on the public portal layout.",
-  },
-  {
-    id: 4,
-    type: "Broadcast",
-    subject: "Welcome to FPMP — Getting Started Guide",
-    to: "All 48 faculty",
-    sentAt: "Mar 15, 2026 · 11:00 AM",
-    sent: 48,
-    read: 45,
-    body: "Welcome to the new Faculty Profile Management Portal. Attached is the general PDF guide for navigating the platform interfaces.",
-  },
-  {
-    id: 5,
-    type: "Direct",
-    subject: "Please Upload Your Updated CV",
-    to: "Prof. Vivek Shah, Prof. Rohit Naik",
-    sentAt: "Mar 12, 2026 · 2:00 PM",
-    sent: 2,
-    read: 1,
-    body: "Dear Faculty,\n\nPlease upload your latest CV to the FPMP portal. Our AI system will extract your profile sections automatically.",
-  },
-  {
-    id: 6,
-    type: "Broadcast",
-    subject: "New Feature: AI CV Extraction Now Available",
-    to: "All 48 faculty",
-    sentAt: "Mar 1, 2026 · 9:00 AM",
-    sent: 48,
-    read: 48,
-    body: "The AI CV processing module is now live and functioning on all faculty endpoints. Please test it and report any anomalies to administrators.",
-  },
-];
-
-type MessageType = "Direct Message" | "Broadcast to All" | "Broadcast by Department";
+type MessageType = "Direct" | "Broadcast";
 type SentFilter = "All" | "Direct" | "Broadcast";
 
 export default function AdminMessagingPage() {
+  const [allFaculty, setAllFaculty] = useState<FacultyOption[]>([]);
+  const [sentMessages, setSentMessages] = useState<DBMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+
   // Compose State
-  const [messageType, setMessageType] = useState<MessageType>("Direct Message");
+  const [messageType, setMessageType] = useState<MessageType>("Direct");
   const [selectedFaculty, setSelectedFaculty] = useState<FacultyOption[]>([]);
-  const [selectedDept, setSelectedDept] = useState("All Departments");
   const [selectedTemplate, setSelectedTemplate] = useState("No template");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -115,8 +53,31 @@ export default function AdminMessagingPage() {
   const [errors, setErrors] = useState({ subject: false, body: false });
 
   // Sent Messages State
-  const [sentFilter, setSentFilter] = useState<SentFilter>("All");
-  const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
+  const [sentFilter, setSentFilter] = useState<SentFilter | "Inbox">("All");
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
+
+  const fetchMessages = async () => {
+    const { data } = await supabase
+      .from("messages")
+      .select("*, faculty_profiles(name, email)")
+      .order("sent_at", { ascending: false });
+    if (data) {
+      setSentMessages(data as any);
+    }
+  };
+
+  const fetchFaculty = async () => {
+    const { data } = await supabase.from("faculty_profiles").select("id, name, email");
+    if (data) {
+      setAllFaculty(data);
+    }
+  };
+
+  useEffect(() => {
+    Promise.all([fetchMessages(), fetchFaculty()]).then(() => {
+      setIsLoading(false);
+    });
+  }, []);
 
   const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -157,7 +118,7 @@ export default function AdminMessagingPage() {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const hasSubjectError = subject.trim() === "";
     const hasBodyError = body.trim() === "";
 
@@ -165,47 +126,127 @@ export default function AdminMessagingPage() {
       setErrors({ subject: hasSubjectError, body: hasBodyError });
       return;
     }
-
-    setErrors({ subject: false, body: false });
-    
-    let targetMsg = "";
-    if (messageType === "Direct Message") {
-      targetMsg = `${selectedFaculty.length} faculty`;
-    } else if (messageType === "Broadcast by Department") {
-      targetMsg = `faculty in ${selectedDept}`;
-    } else {
-      targetMsg = "all 48 faculty";
+    if (messageType === "Direct" && selectedFaculty.length === 0) {
+      alert("Please select at least one faculty member.");
+      return;
     }
 
-    alert(`Message sent successfully to ${targetMsg}.`);
-    
-    // Reset
-    setSubject("");
-    setBody("");
-    setSelectedFaculty([]);
-    setSelectedTemplate("No template");
-    setScheduleDate("");
-    setScheduleTime("");
+    setErrors({ subject: false, body: false });
+    setIsSending(true);
+
+    const auditLog = async (detail: string) => {
+      await supabase.from("audit_log").insert({ actor: "admin", action: "message", detail });
+    };
+
+    try {
+      if (messageType === "Broadcast") {
+        await supabase.from("messages").insert({
+          from_admin: true,
+          to_faculty: null,
+          subject,
+          body
+        });
+
+        const emails = allFaculty.map((f) => f.email).filter(Boolean);
+        for (const email of emails) {
+          await fetch("/api/send-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: email,
+              toName: "Faculty Member",
+              fromName: "FPMP Admin",
+              subject,
+              body,
+              type: "admin"
+            })
+          });
+        }
+        await auditLog(subject);
+      } else {
+        for (const faculty of selectedFaculty) {
+          await supabase.from("messages").insert({
+            from_admin: true,
+            to_faculty: faculty.id,
+            subject,
+            body
+          });
+          if (faculty.email) {
+            await fetch("/api/send-message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: faculty.email,
+                toName: faculty.name,
+                fromName: "FPMP Admin",
+                subject,
+                body,
+                type: "admin"
+              })
+            });
+          }
+        }
+        await auditLog(subject);
+      }
+
+      setToastMsg("Message sent!");
+      setTimeout(() => setToastMsg(""), 3000);
+      
+      // Reset
+      setSubject("");
+      setBody("");
+      setSelectedFaculty([]);
+      setSelectedTemplate("No template");
+      setScheduleDate("");
+      setScheduleTime("");
+      
+      await fetchMessages();
+    } catch (e) {
+      console.error(e);
+      alert("Error sending message.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const filteredSentMessages = mockSentMessages.filter((m) => {
+  const handleAdminReply = (msg: DBMessage) => {
+    setMessageType("Direct");
+    const faculty = allFaculty.find(f => f.id === msg.to_faculty);
+    if (faculty) setSelectedFaculty([faculty]);
+    setSubject(`Re: ${msg.subject}`);
+    setBody(`\n\n--- Original Message from Faculty ---\n\n${msg.body}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const filteredSentMessages = sentMessages.filter((m) => {
+    if (sentFilter === "Inbox") {
+      return !m.from_admin;
+    }
+    
+    // Default: only show sent messages (from_admin: true)
+    if (!m.from_admin) return false;
+
+    const mType = m.to_faculty === null ? "Broadcast" : "Direct";
     if (sentFilter === "All") return true;
-    return m.type === sentFilter;
+    return mType === sentFilter;
   });
 
   const getPreviewInfo = () => {
-    if (messageType === "Direct Message") {
+    if (messageType === "Direct") {
       if (selectedFaculty.length === 0) return "Sending to: No faculty selected";
       return `Sending to: ${selectedFaculty.map((f) => f.name).join(", ")}`;
     }
-    if (messageType === "Broadcast by Department") {
-      return `Sending to: ${selectedDept} (Filtered Faculty)`;
-    }
-    return "Sending to: All 48 faculty members";
+    return `Sending to: All ${allFaculty.length} faculty members`;
   };
 
   return (
     <AdminLayout>
+      {toastMsg && (
+        <div className="fixed top-4 right-4 z-[9999] rounded-lg bg-emerald-50 px-4 py-3 text-emerald-800 shadow-md border border-emerald-200 flex items-center gap-2 font-body text-sm animate-in fade-in">
+          <CheckCircle2 size={18} />
+          {toastMsg}
+        </div>
+      )}
       {/* PAGE HEADER */}
       <div className="px-6 pb-4 pt-6">
         <h1 className="font-headline text-[22px] font-bold tracking-tight text-slate-900">
@@ -234,7 +275,7 @@ export default function AdminMessagingPage() {
                 Message Type
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {(["Direct Message", "Broadcast to All", "Broadcast by Department"] as MessageType[]).map((type) => (
+                {(["Direct", "Broadcast"] as MessageType[]).map((type) => (
                   <button
                     key={type}
                     onClick={() => setMessageType(type)}
@@ -251,7 +292,7 @@ export default function AdminMessagingPage() {
             </div>
 
             {/* Field 2: To (Direct Message) */}
-            {messageType === "Direct Message" && (
+            {messageType === "Direct" && (
               <div className="relative">
                 <label className="mb-1.5 block font-label text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   To
@@ -289,7 +330,7 @@ export default function AdminMessagingPage() {
 
                 {isDropdownOpen && (
                   <div className="absolute top-full z-10 mt-1 max-h-[200px] w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                    {mockFaculty.map((f) => (
+                    {allFaculty.map((f) => (
                       <div
                         key={f.id}
                         className="cursor-pointer px-3 py-2 font-body text-[13px] text-slate-900 transition-colors hover:bg-slate-50"
@@ -312,25 +353,15 @@ export default function AdminMessagingPage() {
               </div>
             )}
 
-            {/* Field 2b: Department */}
-            {messageType === "Broadcast by Department" && (
+            {/* Field 2b: Broadcast All */}
+            {messageType === "Broadcast" && (
               <div>
                 <label className="mb-1.5 block font-label text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Department
+                  To
                 </label>
-                <select
-                  value={selectedDept}
-                  onChange={(e) => setSelectedDept(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 font-body text-[13px] text-slate-900 shadow-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-primary/10"
-                >
-                  <option>All Departments</option>
-                  <option>Electronics & CS</option>
-                  <option>Computer Engineering</option>
-                  <option>Electronics</option>
-                  <option>Mechanical</option>
-                  <option>Civil</option>
-                  <option>Information Tech</option>
-                </select>
+                <div className="flex h-[42px] cursor-not-allowed items-center rounded-lg border border-slate-200 bg-slate-50 px-3 font-body text-[13px] text-slate-500">
+                  All Faculty ({allFaculty.length})
+                </div>
               </div>
             )}
 
@@ -450,9 +481,10 @@ export default function AdminMessagingPage() {
                 </button>
                 <button
                   onClick={handleSend}
-                  className="flex-1 rounded-lg bg-primary px-5 py-2 font-headline text-[13px] font-bold text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 md:flex-none"
+                  disabled={isSending}
+                  className="flex-1 rounded-lg bg-primary px-5 py-2 font-headline text-[13px] font-bold text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 md:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {scheduleDate || scheduleTime ? "Schedule Send" : "Send Now"}
+                  {isSending ? "Sending..." : (scheduleDate || scheduleTime ? "Schedule Send" : "Send Now")}
                 </button>
               </div>
             </div>
@@ -463,10 +495,10 @@ export default function AdminMessagingPage() {
         <div className="w-full shrink-0 flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm md:w-[380px] md:flex">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-headline text-[15px] font-bold text-slate-900">
-              Sent Messages
+              Message History
             </h2>
             <div className="flex gap-1">
-              {(["All", "Direct", "Broadcast"] as SentFilter[]).map((tab) => (
+              {(["All", "Direct", "Broadcast", "Inbox"] as (SentFilter | "Inbox")[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSentFilter(tab)}
@@ -499,7 +531,11 @@ export default function AdminMessagingPage() {
                   >
                     <div className="mb-1.5 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 overflow-hidden">
-                        {msg.type === "Broadcast" ? (
+                        {!msg.from_admin ? (
+                          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-emerald-900">
+                            Faculty Inbound
+                          </span>
+                        ) : msg.to_faculty === null ? (
                           <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-blue-900">
                             Broadcast
                           </span>
@@ -513,23 +549,17 @@ export default function AdminMessagingPage() {
                         </span>
                       </div>
                       <span className="shrink-0 font-body text-[11px] text-slate-400">
-                        {msg.sentAt}
+                        {new Date(msg.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between px-0.5">
                       <span className="truncate font-body text-[12px] text-slate-500">
-                        To: {msg.to}
+                        {msg.from_admin ? "To: " : "From: "}{msg.to_faculty === null ? "All Faculty" : (msg.faculty_profiles?.name || "Unknown Faculty")}
                       </span>
                       <div className="flex shrink-0 items-center gap-1 font-body text-[11px] text-slate-400">
-                        <span>
-                          {msg.sent} sent · {msg.read} read
-                        </span>
-                        {msg.read === msg.sent ? (
-                          <CheckCircle2 size={12} className="text-green-600" />
-                        ) : (
-                          <Clock size={12} className="text-amber-500" />
-                        )}
+                        <span>{msg.from_admin ? "Delivered" : "Received"}</span>
+                        <CheckCircle2 size={12} className="text-green-600" />
                       </div>
                     </div>
                   </div>
@@ -540,9 +570,19 @@ export default function AdminMessagingPage() {
                         {msg.body}
                       </p>
                       <div className="mt-3 text-right">
-                        <button className="rounded-md border border-slate-300 px-3 py-1 font-headline text-[12px] font-semibold text-slate-500 transition-colors hover:bg-white hover:text-slate-900">
-                          Resend
-                        </button>
+                        {!msg.from_admin && (
+                          <button 
+                            onClick={() => handleAdminReply(msg)}
+                            className="rounded-md bg-primary px-4 py-1 font-headline text-[12px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                          >
+                            Reply to Faculty
+                          </button>
+                        )}
+                        {msg.from_admin && (
+                          <button className="rounded-md border border-slate-300 px-3 py-1 font-headline text-[12px] font-semibold text-slate-500 transition-colors hover:bg-white hover:text-slate-900">
+                            Resend
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -552,7 +592,7 @@ export default function AdminMessagingPage() {
             
             {filteredSentMessages.length === 0 && (
               <div className="py-8 text-center font-body text-sm text-slate-500">
-                No sent messages in this category.
+                No messages in this category.
               </div>
             )}
           </div>

@@ -29,6 +29,8 @@ export const metadata: Metadata = {
     "Enterprise ecosystem for engineering institutions to centralize and showcase faculty excellence.",
 };
 
+import ChatAssistant from "@/components/chat/ChatAssistant";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,6 +52,7 @@ export default function RootLayout({
 
       <body className="bg-surface font-body text-on-surface antialiased min-h-screen">
         {children}
+        <ChatAssistant />
       </body>
     </html>
   );

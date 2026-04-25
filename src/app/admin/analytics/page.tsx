@@ -1,73 +1,121 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { TrendingUp, TrendingDown } from "lucide-react";
-
-// --- MOCK DATA ---
-const topFaculty = [
-  { rank: 1, initials: "AR", name: "Dr. Anil Rao", dept: "Computer Engineering", views: 210, trend: "+24%", slug: "anil-rao", avatarBg: "#DBEAFE", avatarText: "#1E3A8A" },
-  { rank: 2, initials: "SM", name: "Dr. Swapnali Makdey", dept: "Electronics & CS", views: 142, trend: "+11%", slug: "swapnali-makdey", avatarBg: "#FFF3ED", avatarText: "#7C2D00" },
-  { rank: 3, initials: "SB", name: "Dr. Sneha Bhat", dept: "Information Tech", views: 76, trend: "+8%", slug: "sneha-bhat", avatarBg: "#FDF4FF", avatarText: "#6B21A8" },
-  { rank: 4, initials: "NM", name: "Dr. Ninad More", dept: "Electronics & CS", views: 67, trend: "+3%", slug: "ninad-more", avatarBg: "#FCE7F3", avatarText: "#9D174D" },
-  { rank: 5, initials: "PD", name: "Dr. Priya Desai", dept: "Civil", views: 41, trend: "-2%", slug: "priya-desai", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { rank: 6, initials: "VM", name: "Dr. Vijay Mehta", dept: "Mechanical", views: 55, trend: "+14%", slug: "vijay-mehta", avatarBg: "#FFE4E6", avatarText: "#9F1239" },
-  { rank: 7, initials: "RK", name: "Prof. Rahul Kulkarni", dept: "Computer Engineering", views: 89, trend: "+5%", slug: "rahul-kulkarni", avatarBg: "#E0F2FE", avatarText: "#0369A1" },
-];
-
-const completionByDept = [
-  { dept: "Electronics & CS", pct: 88, count: 12 },
-  { dept: "Computer Engineering", pct: 72, count: 9 },
-  { dept: "Electronics", pct: 79, count: 8 },
-  { dept: "Mechanical", pct: 61, count: 7 },
-  { dept: "Civil", pct: 55, count: 6 },
-  { dept: "Information Tech", pct: 45, count: 6 },
-];
-
-const statusBreakdown = [
-  { label: "Approved (31)", pct: 64.5, color: "#16A34A" }, // green-600
-  { label: "Pending (9)", pct: 18.75, color: "#D97706" }, // amber-600
-  { label: "Revision (5)", pct: 10.4, color: "#DC2626" }, // red-600
-  { label: "Draft (3)", pct: 6.25, color: "#9CA3AF" }, // gray-400
-];
-
-const monthlyActivity = [
-  { month: "Nov", value: 4 },
-  { month: "Dec", value: 2 },
-  { month: "Jan", value: 7 },
-  { month: "Feb", value: 11 },
-  { month: "Mar", value: 15 },
-  { month: "Apr", value: 6 },
-];
-
-const searchKeywords = [
-  { kw: "VLSI", freq: 8, size: 18 },
-  { kw: "Machine Learning", freq: 7, size: 16 },
-  { kw: "Embedded Systems", freq: 6, size: 15 },
-  { kw: "IoT", freq: 5, size: 14 },
-  { kw: "Deep Learning", freq: 5, size: 14 },
-  { kw: "Data Science", freq: 4, size: 13 },
-  { kw: "Networking", freq: 4, size: 13 },
-  { kw: "CAD", freq: 3, size: 12 },
-  { kw: "Structural Analysis", freq: 3, size: 12 },
-  { kw: "GIS", freq: 2, size: 11 },
-  { kw: "Verilog", freq: 2, size: 11 },
-  { kw: "Thermodynamics", freq: 1, size: 10 },
-  { kw: "SystemVerilog", freq: 1, size: 10 },
-];
-
-const laggards = [
-  { initials: "VS", name: "Prof. Vivek Shah", dept: "Mechanical", completion: 22, avatarBg: "#FEF9C3", avatarText: "#854D0E" },
-  { initials: "RN", name: "Prof. Rohit Naik", dept: "Civil", completion: 15, avatarBg: "#F0FDF4", avatarText: "#166534" },
-  { initials: "MS", name: "Prof. Meera Sharma", dept: "Information Tech", completion: 44, avatarBg: "#FEF3C7", avatarText: "#78350F" },
-  { initials: "AP", name: "Dr. Anita Patil", dept: "Electronics & CS", completion: 55, avatarBg: "#DCFCE7", avatarText: "#166534" },
-];
+import { supabase } from "@/lib/supabase";
 
 type TimeRange = "7d" | "30d" | "90d" | "all";
 
 export default function AnalyticsDashboardPage() {
   const [activeRange, setActiveRange] = useState<TimeRange>("30d");
+
+  const [topFaculty, setTopFaculty] = useState<any[]>([]);
+  const [completionByDept, setCompletionByDept] = useState<any[]>([]);
+  const [statusBreakdown, setStatusBreakdown] = useState<any[]>([]);
+  const [monthlyActivity, setMonthlyActivity] = useState<any[]>([]);
+  const [laggards, setLaggards] = useState<any[]>([]);
+  const [searchKeywords, setSearchKeywords] = useState<any[]>([]);
+  const [stats, setStats] = useState({ totalViews: 0, avgCompletion: 0, activeFaculty: 0, totalFaculty: 0 });
+
+  useEffect(() => {
+    async function loadData() {
+      const { data: profiles } = await supabase.from('faculty_profiles').select('*');
+      if (!profiles || profiles.length === 0) return;
+
+      const total = profiles.length;
+      let active = 0;
+      let totalViews = profiles.reduce((acc, f) => acc + (f.views || 0), 0);
+      let totalCompletion = 0;
+
+      const deptMap: Record<string, { count: number, sum: number }> = {};
+      const statusMap: Record<string, number> = { "approved": 0, "pending_review": 0, "revision": 0, "draft": 0 };
+      
+      const kwMap: Record<string, number> = {};
+
+      const mappedFac = profiles.map(f => {
+        const s = f.profile_status || "draft";
+        if (["approved", "pending_review", "revision"].includes(s)) active++;
+        
+        statusMap[s] = (statusMap[s] || 0) + 1;
+        totalCompletion += (f.completion || 0);
+
+        const d = f.department || "Unknown";
+        if (!deptMap[d]) deptMap[d] = { count: 0, sum: 0 };
+        deptMap[d].count++;
+        deptMap[d].sum += (f.completion || 0);
+
+        if (Array.isArray(f.keywords)) {
+          f.keywords.forEach((k: string) => {
+            kwMap[k] = (kwMap[k] || 0) + 1;
+          });
+        }
+
+        return {
+          id: f.id,
+          name: f.name || "Untitled",
+          initials: (f.name ?? "NA").substring(0, 2).toUpperCase(),
+          dept: f.department || "Unknown",
+          completion: f.completion || 0,
+          views: f.views || 0, // Real views from DB
+          trend: "+0%",
+          slug: f.id,
+          avatarBg: "#F3F4F6",
+          avatarText: "#374151"
+        };
+      });
+
+      setStats({
+        totalViews,
+        avgCompletion: Math.round(totalCompletion / total),
+        activeFaculty: active,
+        totalFaculty: total
+      });
+
+      // Top Faculty (Sorted by actual views)
+      const sortedByViews = [...mappedFac].sort((a, b) => b.views - a.views);
+      setTopFaculty(sortedByViews.slice(0, 7).map((f, i) => ({ ...f, rank: i + 1 })));
+      
+      // Laggards
+      const lag = [...mappedFac].sort((a,b) => a.completion - b.completion).slice(0, 4);
+      setLaggards(lag);
+
+      // Dept Completion
+      const depts = Object.entries(deptMap).map(([dept, counts]) => ({
+        dept,
+        pct: counts.count > 0 ? Math.round(counts.sum / counts.count) : 0,
+        count: counts.count
+      })).sort((a, b) => b.pct - a.pct);
+      setCompletionByDept(depts);
+
+      // Status
+      setStatusBreakdown([
+        { label: `Approved (${statusMap["approved"] || 0})`, pct: ((statusMap["approved"] || 0) / total) * 100, color: "#16A34A" },
+        { label: `Pending (${statusMap["pending_review"] || 0})`, pct: ((statusMap["pending_review"] || 0) / total) * 100, color: "#D97706" },
+        { label: `Revision (${statusMap["revision"] || 0})`, pct: ((statusMap["revision"] || 0) / total) * 100, color: "#DC2626" },
+        { label: `Draft (${statusMap["draft"] || 0})`, pct: ((statusMap["draft"] || 0) / total) * 100, color: "#9CA3AF" },
+      ]);
+
+      // Keywords
+      const kws = Object.entries(kwMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([kw, freq]) => ({ kw, freq, size: Math.max(10, 10 + freq) }));
+      setSearchKeywords(kws);
+
+      // Mock Monthly Activity since we need historical data
+      setMonthlyActivity([
+         { month: "Nov", value: 4 },
+         { month: "Dec", value: 2 },
+         { month: "Jan", value: 7 },
+         { month: "Feb", value: 11 },
+         { month: "Mar", value: 15 },
+         { month: "Apr", value: 6 },
+      ]);
+    }
+    loadData();
+  }, []);
 
   return (
     <AdminLayout>
@@ -133,12 +181,11 @@ export default function AnalyticsDashboardPage() {
             Total Profile Views
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            1,284
+            {stats.totalViews}
           </div>
           <div className="mt-1 flex items-center gap-1">
-            <TrendingUp size={14} className="text-green-600" />
-            <span className="font-headline text-[12px] font-semibold text-green-600">
-              ↑ 18% vs last month
+            <span className="font-headline text-[12px] font-semibold text-slate-500">
+              Not tracking
             </span>
           </div>
         </div>
@@ -149,12 +196,12 @@ export default function AnalyticsDashboardPage() {
             Avg Completion Rate
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            71%
+            {stats.avgCompletion}%
           </div>
           <div className="mt-1 flex items-center gap-1">
             <TrendingUp size={14} className="text-green-600" />
             <span className="font-headline text-[12px] font-semibold text-green-600">
-              ↑ 6% this month
+              Across {stats.totalFaculty} profiles
             </span>
           </div>
         </div>
@@ -165,10 +212,10 @@ export default function AnalyticsDashboardPage() {
             Active Faculty <span className="normal-case opacity-70">(edited)</span>
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            34
+            {stats.activeFaculty}
           </div>
           <div className="mt-1 font-body text-[12px] text-slate-500">
-            Out of 48 total
+            Out of {stats.totalFaculty} total
           </div>
         </div>
 
@@ -178,12 +225,11 @@ export default function AnalyticsDashboardPage() {
             Student Messages <span className="normal-case opacity-70">(via profile)</span>
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            27
+            0
           </div>
           <div className="mt-1 flex items-center gap-1">
-            <TrendingDown size={14} className="text-red-600" />
-            <span className="font-headline text-[12px] font-semibold text-red-600">
-              ↓ 3 vs last month
+            <span className="font-headline text-[12px] font-semibold text-slate-500">
+              Not tracking
             </span>
           </div>
         </div>

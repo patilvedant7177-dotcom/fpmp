@@ -4,20 +4,42 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock, Mail, KeyRound, ArrowRight, ShieldCheck } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function AdminLogin() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsSubmitting(true);
-    // Simulate network delay and pseudo-auth
-    setTimeout(() => {
-      router.push("/admin/dashboard");
-    }, 800);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      const user = data.user;
+      const role = user?.user_metadata?.role;
+
+      if (role === 'admin') {
+        router.push("/admin/dashboard");
+      } else {
+        await supabase.auth.signOut();
+        setError('Not authorised as admin');
+        setIsSubmitting(false);
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred during sign in");
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -99,14 +121,15 @@ export default function AdminLogin() {
               </div>
             </div>
 
+            {error && (
+              <p className="text-[12px] text-red-500 font-medium">{error}</p>
+            )}
+
             <div className="flex items-center justify-between text-[12px]">
               <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300">
                 <input type="checkbox" className="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500" />
                 Remember this device
               </label>
-              <a href="#" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
-                Forgot access?
-              </a>
             </div>
 
             <button 
@@ -114,10 +137,10 @@ export default function AdminLogin() {
               disabled={isSubmitting}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 font-headline text-[14px] font-bold text-white shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all hover:bg-blue-500 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
             >
-              {isSubmitting ? (
+                {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Authenticating...
+                  Signing in...
                 </span>
               ) : (
                 <span className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,6 +12,7 @@ import {
   X,
   ArrowLeft,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface FacultyLayoutProps {
   children: ReactNode;
@@ -20,6 +21,45 @@ interface FacultyLayoutProps {
 export default function FacultyLayout({ children }: FacultyLayoutProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadUnread() {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get profile
+      const { data: profile } = await supabase
+        .from('faculty_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!profile) return;
+
+      const profileId = profile.id;
+
+      // Fetch messages relevant to faculty
+      const { data } = await supabase
+        .from('messages')
+        .select('id')
+        .or(`to_faculty.eq.${profileId},to_faculty.is.null`)
+        .order('sent_at', { ascending: false });
+
+      if (data) {
+        let readIds: string[] = [];
+        try {
+          const stored = localStorage.getItem("fpmp_read_messages");
+          if (stored) readIds = JSON.parse(stored);
+        } catch {}
+        
+        const unread = data.filter(m => !readIds.includes(m.id)).length;
+        setUnreadCount(unread > 0 ? unread : null);
+      }
+    }
+    loadUnread();
+  }, [pathname]);
 
   const navItems = [
     { name: "Dashboard", href: "/faculty/dashboard", icon: LayoutDashboard },
@@ -29,7 +69,7 @@ export default function FacultyLayout({ children }: FacultyLayoutProps) {
       name: "Messages",
       href: "/faculty/messages",
       icon: MessageSquare,
-      badge: 2,
+      badge: unreadCount,
     },
     { name: "Back to Directory", href: "/directory", icon: ArrowLeft },
   ];

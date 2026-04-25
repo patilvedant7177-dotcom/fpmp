@@ -5,20 +5,68 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, KeyRound, ArrowRight, BookOpenCheck } from "lucide-react";
 import PublicNavbar from "@/components/shared/PublicNavbar";
+import { supabase } from "@/lib/supabase";
 
 export default function FacultyLogin() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setMessage(null);
     setIsSubmitting(true);
-    // Simulate network delay and pseudo-auth
-    setTimeout(() => {
-      router.push("/faculty/dashboard");
-    }, 800);
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      const user = data.user;
+      const role = user?.user_metadata?.role;
+
+      if (role === 'faculty') {
+        router.push("/faculty/dashboard");
+      } else if (role === 'admin') {
+        setError('Use the Admin portal to log in');
+        setIsSubmitting(false);
+      } else {
+        // Fallback for missing role if needed
+        router.push("/faculty/dashboard");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred during sign in");
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Please enter your email to reset password");
+      return;
+    }
+    
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: process.env.NEXT_PUBLIC_APP_URL + '/reset-password',
+      });
+
+      if (resetError) throw resetError;
+      setMessage("Reset link sent to your email");
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
+    }
   };
 
   return (
@@ -77,7 +125,11 @@ export default function FacultyLogin() {
                   <label className="text-[12px] font-bold uppercase tracking-wider text-outline font-label">
                     Password
                   </label>
-                  <a href="#" className="text-[12px] font-bold text-primary hover:text-blue-700 transition-colors">
+                  <a 
+                    href="#" 
+                    onClick={handleForgotPassword}
+                    className="text-[12px] font-bold text-primary hover:text-blue-700 transition-colors"
+                  >
                     Forgot details?
                   </a>
                 </div>
@@ -94,6 +146,13 @@ export default function FacultyLogin() {
                 </div>
               </div>
 
+              {(error || message) && (
+                <div className="flex flex-col gap-1">
+                  {error && <p className="text-[12px] text-red-500 font-medium">{error}</p>}
+                  {message && <p className="text-[12px] text-green-600 font-medium">{message}</p>}
+                </div>
+              )}
+
               <button 
                 type="submit" 
                 disabled={isSubmitting}
@@ -102,7 +161,7 @@ export default function FacultyLogin() {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Authenticating...
+                    Signing in...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">

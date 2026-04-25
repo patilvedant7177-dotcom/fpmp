@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ChevronUp,
@@ -14,6 +14,7 @@ import {
   Search,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { supabase } from "@/lib/supabase";
 
 interface FacultyRow {
   id: string;
@@ -21,7 +22,7 @@ interface FacultyRow {
   name: string;
   desig: string;
   dept: string;
-  status: "approved" | "pending" | "revision" | "draft";
+  status: string;
   completion: number;
   views: number;
   updated: string;
@@ -29,166 +30,7 @@ interface FacultyRow {
   avatarText: string;
 }
 
-const mockFacultyData: FacultyRow[] = [
-  {
-    id: "1",
-    initials: "SM",
-    name: "Dr. Swapnali Makdey",
-    desig: "Head of Department",
-    dept: "Electronics & CS",
-    status: "pending",
-    completion: 78,
-    views: 142,
-    updated: "2 hrs ago",
-    avatarBg: "#FFF3ED",
-    avatarText: "#7C2D00",
-  },
-  {
-    id: "2",
-    initials: "RK",
-    name: "Prof. Rahul Kulkarni",
-    desig: "Associate Professor",
-    dept: "Computer Engineering",
-    status: "approved",
-    completion: 92,
-    views: 89,
-    updated: "3 days ago",
-    avatarBg: "#E0F2FE",
-    avatarText: "#0369A1",
-  },
-  {
-    id: "3",
-    initials: "AP",
-    name: "Dr. Anita Patil",
-    desig: "Professor",
-    dept: "Electronics & CS",
-    status: "revision",
-    completion: 55,
-    views: 34,
-    updated: "5 days ago",
-    avatarBg: "#DCFCE7",
-    avatarText: "#166534",
-  },
-  {
-    id: "4",
-    initials: "NM",
-    name: "Dr. Ninad More",
-    desig: "Associate Professor",
-    dept: "Electronics & CS",
-    status: "approved",
-    completion: 85,
-    views: 67,
-    updated: "1 week ago",
-    avatarBg: "#FCE7F3",
-    avatarText: "#9D174D",
-  },
-  {
-    id: "5",
-    initials: "VS",
-    name: "Prof. Vivek Shah",
-    desig: "Assistant Professor",
-    dept: "Mechanical",
-    status: "draft",
-    completion: 22,
-    views: 0,
-    updated: "2 weeks ago",
-    avatarBg: "#FEF9C3",
-    avatarText: "#854D0E",
-  },
-  {
-    id: "6",
-    initials: "PD",
-    name: "Dr. Priya Desai",
-    desig: "Professor",
-    dept: "Civil",
-    status: "approved",
-    completion: 68,
-    views: 41,
-    updated: "4 days ago",
-    avatarBg: "#EDE9FE",
-    avatarText: "#4C1D95",
-  },
-  {
-    id: "7",
-    initials: "MS",
-    name: "Prof. Meera Sharma",
-    desig: "Assistant Professor",
-    dept: "Information Tech",
-    status: "pending",
-    completion: 44,
-    views: 12,
-    updated: "1 day ago",
-    avatarBg: "#FEF3C7",
-    avatarText: "#78350F",
-  },
-  {
-    id: "8",
-    initials: "AR",
-    name: "Dr. Anil Rao",
-    desig: "Professor",
-    dept: "Computer Engineering",
-    status: "approved",
-    completion: 95,
-    views: 210,
-    updated: "6 days ago",
-    avatarBg: "#DBEAFE",
-    avatarText: "#1E3A8A",
-  },
-  {
-    id: "9",
-    initials: "SK",
-    name: "Prof. Sunita Kadam",
-    desig: "Associate Professor",
-    dept: "Electronics",
-    status: "revision",
-    completion: 61,
-    views: 28,
-    updated: "3 days ago",
-    avatarBg: "#D1FAE5",
-    avatarText: "#065F46",
-  },
-  {
-    id: "10",
-    initials: "VM",
-    name: "Dr. Vijay Mehta",
-    desig: "Professor",
-    dept: "Mechanical",
-    status: "pending",
-    completion: 70,
-    views: 55,
-    updated: "8 hrs ago",
-    avatarBg: "#FFE4E6",
-    avatarText: "#9F1239",
-  },
-  {
-    id: "11",
-    initials: "RN",
-    name: "Prof. Rohit Naik",
-    desig: "Assistant Professor",
-    dept: "Civil",
-    status: "draft",
-    completion: 15,
-    views: 0,
-    updated: "3 weeks ago",
-    avatarBg: "#F0FDF4",
-    avatarText: "#166534",
-  },
-  {
-    id: "12",
-    initials: "SB",
-    name: "Dr. Sneha Bhat",
-    desig: "Associate Professor",
-    dept: "Information Tech",
-    status: "approved",
-    completion: 80,
-    views: 76,
-    updated: "5 days ago",
-    avatarBg: "#FDF4FF",
-    avatarText: "#6B21A8",
-  },
-];
-
-const StatusBadge = ({ status }: { status: FacultyRow["status"] }) => {
+const StatusBadge = ({ status }: { status: string }) => {
   switch (status) {
     case "approved":
       return (
@@ -221,6 +63,9 @@ type SortColumn = "name" | "dept" | "desig" | "status" | "completion" | "views";
 type SortDirection = "asc" | "desc";
 
 export default function AdminFacultyPage() {
+  const [facultyData, setFacultyData] = useState<FacultyRow[]>([]);
+  const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, revision: 0 });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("All Departments");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
@@ -233,9 +78,42 @@ export default function AdminFacultyPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 12;
 
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.from('faculty_profiles').select('*');
+      if (!data) return;
+
+      let app = 0, pen = 0, rev = 0;
+      
+      const mapped = data.map((f: any) => {
+        const s = f.profile_status || "draft";
+        if (s === "approved") app++;
+        if (s === "pending_review") pen++;
+        if (s === "revision") rev++;
+
+        return {
+          id: f.id,
+          initials: (f.name ?? "NA").substring(0, 2).toUpperCase(),
+          name: f.name || "Untitled",
+          desig: f.designation || "Unknown",
+          dept: f.department || "Unknown",
+          status: s,
+          completion: f.completion || 0,
+          views: f.views || 0,
+          updated: new Date(f.updated_at || f.created_at || Date.now()).toLocaleDateString(),
+          avatarBg: "#F3F4F6",
+          avatarText: "#374151"
+        };
+      });
+      setFacultyData(mapped);
+      setStats({ total: mapped.length, approved: app, pending: pen, revision: rev });
+    }
+    load();
+  }, []);
+
   // Derive filtered sorting
   const filteredData = useMemo(() => {
-    let raw = mockFacultyData.filter((f) => {
+    let raw = facultyData.filter((f) => {
       // Name / Dept / Design Search
       const searchMatch =
         searchQuery === "" ||
@@ -250,7 +128,7 @@ export default function AdminFacultyPage() {
       if (statusFilter !== "All Statuses") {
         const normalizedFilter = statusFilter.toLowerCase();
         if (normalizedFilter.includes("pending")) {
-          statusMatch = f.status === "pending";
+          statusMatch = f.status === "pending_review" || f.status === "pending";
         } else if (normalizedFilter.includes("revision")) {
           statusMatch = f.status === "revision";
         } else {
@@ -379,7 +257,7 @@ export default function AdminFacultyPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => exportCSV(mockFacultyData)}
+            onClick={() => exportCSV(facultyData)}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-headline text-[13px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 shadow-sm"
           >
             Export CSV
@@ -397,7 +275,7 @@ export default function AdminFacultyPage() {
             Total Faculty
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            48
+            {stats.total}
           </div>
           <div className="mt-1 font-body text-[12px] text-slate-500">
             Across 6 departments
@@ -409,10 +287,10 @@ export default function AdminFacultyPage() {
             Approved
           </div>
           <div className="font-headline text-[28px] font-bold text-green-600">
-            31
+            {stats.approved}
           </div>
           <div className="mt-1 font-body text-[12px] text-slate-500">
-            64% of total
+            {stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0}% of total
           </div>
         </div>
 
@@ -421,7 +299,7 @@ export default function AdminFacultyPage() {
             Pending Review
           </div>
           <div className="font-headline text-[28px] font-bold text-amber-500">
-            9
+            {stats.pending}
           </div>
           <div className="mt-1 font-body text-[12px] text-slate-500">
             Awaiting approval
@@ -433,7 +311,7 @@ export default function AdminFacultyPage() {
             Needs Revision
           </div>
           <div className="font-headline text-[28px] font-bold text-red-600">
-            5
+            {stats.revision}
           </div>
           <div className="mt-1 font-body text-[12px] text-slate-500">
             Sent back to faculty
@@ -674,7 +552,7 @@ export default function AdminFacultyPage() {
                       </td>
                       <td className="px-[14px] py-[11px] align-middle">
                         <div className="flex gap-1.5">
-                          {f.status === "pending" || f.status === "revision" ? (
+                          {f.status === "pending_review" || f.status === "revision" ? (
                             <Link
                               href={`/admin/approval/${f.id}`}
                               className="rounded-md border border-primary/20 bg-primary-container/40 px-3 py-1 font-headline text-[12px] font-semibold text-primary transition-colors hover:bg-primary-container"
@@ -682,9 +560,9 @@ export default function AdminFacultyPage() {
                               Review
                             </Link>
                           ) : (
-                            <button className="rounded-md border border-slate-300 px-3 py-1 font-headline text-[12px] font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
+                            <Link href={`/admin/approval/${f.id}`} className="rounded-md border border-slate-300 px-3 py-1 font-headline text-[12px] font-semibold text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
                               View
-                            </button>
+                            </Link>
                           )}
                           <button className="flex items-center justify-center rounded-md border border-slate-300 px-1.5 py-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900">
                             <MoreHorizontal size={16} />

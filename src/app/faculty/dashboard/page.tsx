@@ -1,59 +1,202 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import FacultyLayout from "@/components/faculty/FacultyLayout";
 
-const sectionsStatus = [
-  { name: "Basic Info", status: "Done" },
-  { name: "About/Overview", status: "Done" },
-  { name: "Education", status: "Done" },
-  { name: "Publications", status: "Done" },
-  { name: "Research Keywords", status: "Done" },
-  { name: "Awards", status: "Partial" },
-  { name: "Certifications/FDPs", status: "Empty" },
-  { name: "Invited Talks", status: "Empty" },
-  { name: "Social Links", status: "Empty" },
+const calculateCompletion = (profile: any) => {
+  let score = 0;
+  if (profile.name && profile.email && profile.department) score += 10;
+  if (profile.about && profile.about.length > 20) score += 15;
+  if (profile.education && profile.education.length > 0) score += 10;
+  if (profile.publications && profile.publications.length > 0) score += 20;
+  if (profile.keywords && profile.keywords.length > 0) score += 10;
+  if (profile.awards && profile.awards.length > 0) score += 10;
+  if (profile.certifications && profile.certifications.length > 0) score += 10;
+  if (profile.invited_talks && profile.invited_talks.length > 0) score += 10;
+  if (profile.social_links && Object.keys(profile.social_links).length > 0) score += 5;
+  return score;
+};
+
+const getSectionsStatus = (profile: any) => [
+  { name: "Basic Info", status: (profile.name && profile.email && profile.department) ? "Done" : "Empty" },
+  { name: "About/Overview", status: profile.about ? "Done" : "Empty" },
+  { name: "Education", status: (profile.education?.length > 0) ? "Done" : "Empty" },
+  { name: "Publications", status: (profile.publications?.length > 0) ? "Done" : "Empty" },
+  { name: "Research Keywords", status: (profile.keywords?.length > 0) ? "Done" : "Empty" },
+  { name: "Awards", status: (profile.awards?.length > 0) ? "Done" : "Empty" },
+  { name: "Certifications/FDPs", status: (profile.certifications?.length > 0) ? "Done" : "Empty" },
+  { name: "Invited Talks", status: (profile.invited_talks?.length > 0) ? "Done" : "Empty" },
+  { name: "Social Links", status: (profile.social_links && Object.keys(profile.social_links).length > 0) ? "Done" : "Empty" },
 ];
 
-const statsData = {
-  distribution: [
-    { label: "Journals", percentage: 55, color: "#E8580A", actualCount: 15 },
-    { label: "Conferences", percentage: 30, color: "#2563EB", actualCount: 8 },
-    { label: "Invited Talks", percentage: 15, color: "#16A34A", actualCount: 4 },
-  ],
-  outputByYear: [
-    { year: "2021", count: 2 },
-    { year: "2022", count: 3 },
-    { year: "2023", count: 5 },
-    { year: "2024", count: 4 },
-    { year: "2025", count: 9 },
-    { year: "2026", count: 1 },
-  ]
-};
-
-const StatusBadge = ({ status }: { status: "Done" | "Partial" | "Empty" }) => {
-  if (status === "Done") {
-    return (
-      <span className="rounded bg-green-100 px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider text-green-800">
-        Done
-      </span>
-    );
-  }
-  if (status === "Partial") {
-    return (
-      <span className="rounded bg-amber-100 px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider text-amber-800">
-        Partial
-      </span>
-    );
-  }
-  return (
-    <span className="rounded bg-slate-100 px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider text-slate-600">
-      Empty
-    </span>
-  );
-};
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse rounded bg-slate-200 ${className}`} />
+);
 
 export default function DashboardPage() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // First try the complex query
+        let { data: profileData, error } = await supabase
+          .from('faculty_profiles')
+          .select(`*, education(*), publications(*), awards(*), certifications(*), invited_talks(*), 
+            messages!messages_to_faculty_fkey(
+              id, subject, body, is_read, sent_at
+            )`)
+          .eq('user_id', user.id)
+          .single();
+
+        // If it fails with a relationship error, try without messages
+        if (error && (error.code === 'PGRST108' || error.message.includes('relationship'))) {
+          console.warn("Messages relationship not found, retrying without messages...");
+          const { data: simpleData, error: simpleError } = await supabase
+            .from('faculty_profiles')
+            .select(`*, education(*), publications(*), awards(*), certifications(*), invited_talks(*)`)
+            .eq('user_id', user.id)
+            .single();
+          
+          profileData = simpleData;
+          error = simpleError;
+        }
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          setDebugInfo({ 
+            error: error.message, 
+            code: error.code, 
+            userId: user.id,
+            hint: error.hint,
+            details: error.details
+          });
+          setLoading(false);
+          return;
+        }
+
+        const score = calculateCompletion(profileData);
+        if (profileData.completion !== score) {
+          await supabase
+            .from('faculty_profiles')
+            .update({ completion: score })
+            .eq('id', profileData.id);
+          profileData.completion = score;
+        }
+
+        setProfile(profileData);
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  const sections = profile ? getSectionsStatus(profile) : [];
+  const unreadCount = profile?.messages?.filter((m: any) => !m.is_read).length || 0;
+  const recentMessages = profile?.messages?.sort((a: any, b: any) => 
+    new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+  ).slice(0, 2) || [];
+
+  if (loading) {
+    return (
+      <FacultyLayout>
+        <div className="mx-6 mt-6 h-12 rounded-lg bg-slate-100 animate-pulse" />
+        <div className="px-6 pt-6">
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}
+        </div>
+        <div className="px-6 pb-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Skeleton className="h-[300px] rounded-xl" />
+            <Skeleton className="lg:col-span-2 h-[300px] rounded-xl" />
+          </div>
+        </div>
+      </FacultyLayout>
+    );
+  }
+
+  if (debugInfo) {
+    return (
+      <FacultyLayout>
+        <div className="mx-6 mt-12 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-container-low p-12 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+            <span className="material-symbols-outlined text-[32px]">person_off</span>
+          </div>
+          <h2 className="font-headline text-2xl font-extrabold text-primary">Profile Entry Not Found</h2>
+          <p className="mt-3 max-w-md font-body text-[15px] text-secondary">
+            You are logged in as <span className="font-bold text-primary">{debugInfo.userId}</span>, but we couldn't find a faculty profile record linked to this ID in the database.
+          </p>
+          
+          <div className="mt-8 flex flex-col gap-3">
+             <div className="rounded-lg bg-surface-container-high p-4 text-left">
+               <p className="font-label text-[11px] font-bold uppercase tracking-wider text-outline mb-1">Checklist for Admin:</p>
+               <ul className="list-disc list-inside font-body text-[13px] text-secondary space-y-1 mb-3">
+                 <li>Ensure user role is 'faculty' in Auth Metadata</li>
+                 <li>Check if <code className="bg-surface/50 px-1 rounded">faculty_profiles</code> table has a record with <code className="bg-surface/50 px-1 rounded">user_id</code> = <span className="font-bold">{debugInfo.userId}</span></li>
+                 <li>Verify RLS policies on the <code className="bg-surface/50 px-1 rounded">faculty_profiles</code> table</li>
+               </ul>
+               <div className="mt-3 border-t border-outline-variant/30 pt-3">
+                 <p className="font-label text-[11px] font-bold uppercase tracking-wider text-red-700 mb-1">Raw Database Error:</p>
+                 <p className="font-mono text-[11px] text-red-600 bg-red-50 p-2 rounded">
+                   [{debugInfo.code}] {debugInfo.error}
+                 </p>
+                 {debugInfo.hint && <p className="mt-1 font-body text-[10px] text-red-500 italic">Hint: {debugInfo.hint}</p>}
+               </div>
+             </div>
+             
+             <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg bg-primary px-6 py-2.5 font-headline text-[13px] font-bold text-on-primary shadow-sm"
+             >
+                Retry Loading
+             </button>
+          </div>
+        </div>
+      </FacultyLayout>
+    );
+  }
+
+  if (!profile) return <div>Unexpected error loading dashboard.</div>;
+
+  // Analytics Processing
+  const publications = profile.publications || [];
+  const journalCount = publications.filter((p: any) => p.type === 'journal' || !p.type).length;
+  const conferenceCount = publications.filter((p: any) => p.type === 'conference').length;
+  const invitedTalks = profile.invited_talks || [];
+  const talksCount = invitedTalks.length;
+  const totalItems = journalCount + conferenceCount + talksCount;
+
+  const distribution = [
+    { label: "Journals", actualCount: journalCount, percentage: totalItems ? Math.round((journalCount / totalItems) * 100) : 0, color: "#E8580A" },
+    { label: "Conferences", actualCount: conferenceCount, percentage: totalItems ? Math.round((conferenceCount / totalItems) * 100) : 0, color: "#2563EB" },
+    { label: "Invited Talks", actualCount: talksCount, percentage: totalItems ? Math.round((talksCount / totalItems) * 100) : 0, color: "#16A34A" },
+  ];
+
+  const yearCountsMap = publications.reduce((acc: any, p: any) => {
+    const yr = p.year || "N/A";
+    acc[yr] = (acc[yr] || 0) + 1;
+    return acc;
+  }, {});
+
+  const outputByYear = Object.entries(yearCountsMap)
+    .map(([year, count]) => ({ year, count: count as number }))
+    .sort((a, b) => a.year.localeCompare(b.year))
+    .slice(-6);
+
   return (
     <FacultyLayout>
       {/* ANNOUNCEMENT BAR */}
@@ -68,10 +211,10 @@ export default function DashboardPage() {
       {/* PAGE HEADER */}
       <div className="px-6 pt-6">
         <h1 className="font-headline text-[22px] font-bold tracking-tight text-primary">
-          Welcome back, Dr. Makdey
+          Welcome back, {profile.name}
         </h1>
         <p className="mt-1 font-body text-[14px] text-secondary">
-          Your profile is currently under review
+          Your profile status: <span className="font-bold text-primary capitalize">{profile.status}</span>
         </p>
       </div>
 
@@ -83,10 +226,10 @@ export default function DashboardPage() {
             Profile Completion
           </div>
           <div className="font-headline text-[28px] font-bold text-primary">
-            78%
+            {profile.completion}%
           </div>
           <div className="mt-3 h-[6px] w-full overflow-hidden rounded-full bg-surface-container-high">
-            <div className="h-full w-[78%] rounded-full bg-primary" />
+            <div className="h-full rounded-full bg-primary" style={{ width: `${profile.completion}%` }} />
           </div>
         </div>
 
@@ -96,12 +239,15 @@ export default function DashboardPage() {
             Profile Status
           </div>
           <div>
-            <span className="inline-block rounded-md bg-amber-100 px-2.5 py-1 font-label text-[11px] font-bold uppercase tracking-wider text-amber-800">
-              Pending Review
+            <span className={`inline-block rounded-md px-2.5 py-1 font-label text-[11px] font-bold uppercase tracking-wider ${
+              profile.status === 'approved' ? 'bg-green-100 text-green-800' : 
+              profile.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-800'
+            }`}>
+              {profile.status}
             </span>
           </div>
-          <div className="mt-auto pt-2 font-body text-[12px] text-secondary">
-            Since 2 days ago
+          <div className="mt-auto pt-2 font-body text-[12px] text-secondary capitalize">
+            {profile.department}
           </div>
         </div>
 
@@ -111,10 +257,10 @@ export default function DashboardPage() {
             Public Views
           </div>
           <div className="font-headline text-[28px] font-bold text-primary">
-            142
+            {profile.views || 0}
           </div>
           <div className="mt-auto font-body text-[12px] text-secondary">
-            Last 30 days
+            Total lifetime views
           </div>
         </div>
 
@@ -124,30 +270,34 @@ export default function DashboardPage() {
             Unread Messages
           </div>
           <div className="font-headline text-[28px] font-bold text-primary">
-            2
+            {unreadCount}
           </div>
           <div className="mt-auto font-body text-[12px] text-secondary">
-            From admin
+            From administrator
           </div>
         </div>
       </div>
 
-      {/* ACADEMIC IMPACT & OUTPUT (FROM PUBLIC PROFILE) */}
+      {/* ACADEMIC IMPACT & OUTPUT */}
       <div className="px-6 pb-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Research Footprint Donut */}
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm flex flex-col items-center">
             <h3 className="font-headline text-[15px] font-bold text-primary w-full mb-6">Research Footprint</h3>
             <div className="relative h-[160px] w-[160px] rounded-full overflow-hidden mb-6" style={{
-              background: `conic-gradient(#E8580A 0% 55%, #2563EB 55% 85%, #16A34A 85% 100%)`
+              background: `conic-gradient(
+                #E8580A 0% ${distribution[0].percentage}%, 
+                #2563EB ${distribution[0].percentage}% ${distribution[0].percentage + distribution[1].percentage}%, 
+                #16A34A ${distribution[0].percentage + distribution[1].percentage}% 100%
+              )`
             }}>
               <div className="absolute inset-0 m-auto h-[110px] w-[110px] rounded-full bg-surface-container-lowest flex flex-col items-center justify-center shadow-inner">
-                <span className="font-headline text-[28px] font-bold text-primary leading-none">27</span>
+                <span className="font-headline text-[28px] font-bold text-primary leading-none">{totalItems}</span>
                 <span className="font-label text-[9px] uppercase font-bold text-outline mt-1 tracking-widest">Items</span>
               </div>
             </div>
             <div className="w-full flex flex-col gap-3">
-              {statsData.distribution.map((d, i) => (
+              {distribution.map((d, i) => (
                 <div key={i} className="flex items-center justify-between font-body text-[12px]">
                   <div className="flex items-center gap-2">
                     <div className="h-[10px] w-[10px] rounded-sm" style={{ backgroundColor: d.color }} />
@@ -166,8 +316,8 @@ export default function DashboardPage() {
           <div className="lg:col-span-2 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm flex flex-col">
             <h3 className="font-headline text-[15px] font-bold text-primary mb-6">Publication Output</h3>
             <div className="flex-1 flex items-end justify-between gap-2 md:gap-4 h-[180px] w-full border-b border-outline-variant/30 pb-3">
-              {statsData.outputByYear.map((d, i) => {
-                const max = Math.max(...statsData.outputByYear.map(x => x.count));
+              {outputByYear.length > 0 ? outputByYear.map((d, i) => {
+                const max = Math.max(...outputByYear.map(x => x.count));
                 const heightPct = (d.count / max) * 100;
                 const finalHeight = Math.max(heightPct, 5); 
                 return (
@@ -179,7 +329,9 @@ export default function DashboardPage() {
                     <span className="font-label text-[10px] font-bold text-outline uppercase tracking-wider">{d.year}</span>
                   </div>
                 )
-              })}
+              }) : (
+                <div className="flex h-full w-full items-center justify-center text-outline text-xs uppercase tracking-widest">No publication data</div>
+              )}
             </div>
           </div>
         </div>
@@ -194,11 +346,11 @@ export default function DashboardPage() {
               Profile Completion
             </h3>
             <span className="font-headline text-[15px] font-bold text-primary">
-              78%
+              {profile.completion}%
             </span>
           </div>
           <div className="flex flex-col">
-            {sectionsStatus.map((section, idx) => (
+            {sections.map((section: any, idx: number) => (
               <div
                 key={idx}
                 className="flex items-center justify-between border-b border-outline-variant/20 py-2.5 last:border-0"
@@ -223,38 +375,39 @@ export default function DashboardPage() {
               AI Smart Nudges
             </h3>
 
-            {/* Nudge 1 */}
-            <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-              <h4 className="mb-1 font-headline text-[13px] font-bold text-blue-900">
-                Add your Certifications & FDPs
-              </h4>
-              <p className="font-body text-[12px] text-blue-800/80">
-                You have 13+ certifications in your CV. Faculty with complete
-                records appear higher in search results.
-              </p>
-            </div>
-
-            {/* Nudge 2 */}
-            <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-              <h4 className="mb-1 font-headline text-[13px] font-bold text-blue-900">
-                Link your Google Scholar profile
-              </h4>
-              <p className="font-body text-[12px] text-blue-800/80">
-                Connect Scholar to auto-sync your publications. Takes 30
-                seconds.
-              </p>
-            </div>
-
-            {/* Nudge 3 */}
-            <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-              <h4 className="mb-1 font-headline text-[13px] font-bold text-green-900">
-                Your about section looks great!
-              </h4>
-              <p className="font-body text-[12px] text-green-800/80">
-                Well-written overview will improve student engagement
-                significantly.
-              </p>
-            </div>
+            {profile.completion < 100 ? (
+              <>
+                {!profile.certifications?.length && (
+                  <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <h4 className="mb-1 font-headline text-[13px] font-bold text-blue-900">
+                      Add your Certifications & FDPs
+                    </h4>
+                    <p className="font-body text-[12px] text-blue-800/80">
+                      Faculty with complete records appear higher in search results.
+                    </p>
+                  </div>
+                )}
+                {!profile.publications?.length && (
+                  <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <h4 className="mb-1 font-headline text-[13px] font-bold text-blue-900">
+                      Add your Publications
+                    </h4>
+                    <p className="font-body text-[12px] text-blue-800/80">
+                      Sharing your research output increases your academic footprint.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                <h4 className="mb-1 font-headline text-[13px] font-bold text-green-900">
+                  Your profile is 100% complete!
+                </h4>
+                <p className="font-body text-[12px] text-green-800/80">
+                  Excellent work. Your profile is optimized for maximum visibility.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* BOTTOM: Recent Messages */}
@@ -262,45 +415,34 @@ export default function DashboardPage() {
             <div className="mb-4 flex items-center justify-between border-b border-outline-variant/20 pb-3">
               <h3 className="flex items-center gap-2 font-headline text-[15px] font-bold text-primary">
                 Recent Messages
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-label text-[10px] font-bold text-on-primary">
-                  2
-                </span>
+                {unreadCount > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-label text-[10px] font-bold text-on-primary">
+                    {unreadCount}
+                  </span>
+                )}
               </h3>
             </div>
 
-            {/* Message 1 */}
-            <div className="mb-3 flex items-start gap-3 rounded-lg bg-secondary-container/20 p-3">
-              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-              <div>
-                <h4 className="font-headline text-[13px] font-bold text-primary">
-                  Profile Review — Action Required
-                </h4>
-                <p className="mt-0.5 font-body text-[12px] text-secondary">
-                  Please add your FDP certifications from 2024-25...
-                </p>
-                <p className="mt-1 font-label text-[10px] uppercase tracking-wide text-outline">
-                  Admin · 2 hours ago
-                </p>
+            {recentMessages.length > 0 ? recentMessages.map((msg: any) => (
+              <div key={msg.id} className="mb-3 flex items-start gap-3 rounded-lg bg-secondary-container/20 p-3">
+                {!msg.is_read && <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />}
+                <div>
+                  <h4 className="font-headline text-[13px] font-bold text-primary">
+                    {msg.subject}
+                  </h4>
+                  <p className="mt-0.5 font-body text-[12px] text-secondary line-clamp-1">
+                    {msg.body}
+                  </p>
+                  <p className="mt-1 font-label text-[10px] uppercase tracking-wide text-outline">
+                    Admin · {new Date(msg.sent_at).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-            </div>
+            )) : (
+              <p className="text-center py-4 font-body text-[13px] text-outline italic">No recent messages.</p>
+            )}
 
-            {/* Message 2 */}
-            <div className="mb-4 flex items-start gap-3 rounded-lg bg-secondary-container/20 p-3">
-              <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
-              <div>
-                <h4 className="font-headline text-[13px] font-bold text-primary">
-                  Broadcast: Profile Deadline Reminder
-                </h4>
-                <p className="mt-0.5 font-body text-[12px] text-secondary">
-                  All faculty must submit by 31st March 2026...
-                </p>
-                <p className="mt-1 font-label text-[10px] uppercase tracking-wide text-outline">
-                  Admin · 1 day ago
-                </p>
-              </div>
-            </div>
-
-            <div className="text-right">
+            <div className="text-right mt-4">
               <Link
                 href="/faculty/messages"
                 className="font-headline text-[12px] font-bold text-primary transition-colors hover:text-blue-600 hover:underline"
@@ -327,7 +469,7 @@ export default function DashboardPage() {
           Upload CV
         </Link>
         <Link
-          href="/faculty/swapnali-makdey"
+          href={`/faculty/${profile.slug}`}
           className="rounded-lg border border-outline-variant bg-surface-container px-5 py-2.5 font-headline text-[13px] font-medium text-secondary shadow-sm transition-colors hover:bg-surface-container-high hover:text-primary active:scale-95"
         >
           Preview Public Profile
@@ -336,3 +478,25 @@ export default function DashboardPage() {
     </FacultyLayout>
   );
 }
+
+const StatusBadge = ({ status }: { status: "Done" | "Partial" | "Empty" }) => {
+  if (status === "Done") {
+    return (
+      <span className="rounded bg-green-100 px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider text-green-800">
+        Done
+      </span>
+    );
+  }
+  if (status === "Partial") {
+    return (
+      <span className="rounded bg-amber-100 px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider text-amber-800">
+        Partial
+      </span>
+    );
+  }
+  return (
+    <span className="rounded bg-slate-100 px-2 py-0.5 font-label text-[10px] font-bold uppercase tracking-wider text-slate-600">
+      Empty
+    </span>
+  );
+};

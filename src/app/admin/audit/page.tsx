@@ -1,74 +1,63 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Download, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
+import { supabase } from "@/lib/supabase";
+
 interface AuditEntry {
-  id: number;
-  timestamp: string;
-  initials: string;
-  name: string;
-  role: string;
+  id: string;
+  created_at: string;
+  actor: string;
   action: string;
-  type: string;
-  details: string;
-  ip: string;
-  avatarBg: string;
-  avatarText: string;
+  detail: string;
+  faculty_profiles?: { name: string } | null;
 }
 
-const auditLog: AuditEntry[] = [
-  { id: 1, timestamp: "Apr 3, 2026 · 10:42 AM", initials: "SM", name: "Dr. Swapnali Makdey", role: "Faculty", action: "Submitted profile for review", type: "Submit", details: "Profile v4 submitted — 5 sections modified", ip: "192.168.1.44", avatarBg: "#FFF3ED", avatarText: "#7C2D00" },
-  { id: 2, timestamp: "Apr 3, 2026 · 10:30 AM", initials: "AD", name: "Admin", role: "Admin", action: "Sent broadcast message", type: "Message", details: "Broadcast to all 48 faculty — 'Profile Deadline Reminder'", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 3, timestamp: "Apr 2, 2026 · 4:15 PM", initials: "RK", name: "Prof. Rahul Kulkarni", role: "Faculty", action: "Updated publications", type: "Edit", details: "3 journal papers added to profile", ip: "192.168.1.67", avatarBg: "#E0F2FE", avatarText: "#0369A1" },
-  { id: 4, timestamp: "Apr 2, 2026 · 2:00 PM", initials: "AD", name: "Admin", role: "Admin", action: "Approved profile — Dr. Anil Rao", type: "Approve", details: "Profile v2 approved and published", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 5, timestamp: "Apr 1, 2026 · 11:30 AM", initials: "AP", name: "Dr. Anita Patil", role: "Faculty", action: "Uploaded CV", type: "Upload", details: "CV_AnitaPatil_2026.pdf — 2.4MB uploaded", ip: "192.168.1.89", avatarBg: "#DCFCE7", avatarText: "#166534" },
-  { id: 6, timestamp: "Apr 1, 2026 · 9:00 AM", initials: "AD", name: "Admin", role: "Admin", action: "Sent revision request — Dr. Anita Patil", type: "Revision", details: "Revision requested: Please add FDP certifications from 2024-25", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 7, timestamp: "Mar 31, 2026 · 5:45 PM", initials: "NM", name: "Dr. Ninad More", role: "Faculty", action: "Logged in to faculty portal", type: "Login", details: "Login from Chrome on Windows", ip: "192.168.1.102", avatarBg: "#FCE7F3", avatarText: "#9D174D" },
-  { id: 8, timestamp: "Mar 31, 2026 · 3:20 PM", initials: "SM", name: "Dr. Swapnali Makdey", role: "Faculty", action: "Edited profile — About section", type: "Edit", details: "About section updated — 43 words changed", ip: "192.168.1.44", avatarBg: "#FFF3ED", avatarText: "#7C2D00" },
-  { id: 9, timestamp: "Mar 30, 2026 · 2:10 PM", initials: "AD", name: "Admin", role: "Admin", action: "Sent direct message — Dr. Anita Patil", type: "Message", details: "Subject: Revision Requested — Please Update Publications", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 10, timestamp: "Mar 30, 2026 · 10:00 AM", initials: "PD", name: "Dr. Priya Desai", role: "Faculty", action: "Submitted profile for review", type: "Submit", details: "Profile v2 submitted — 2 sections modified", ip: "192.168.1.55", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 11, timestamp: "Mar 29, 2026 · 4:50 PM", initials: "AD", name: "Admin", role: "Admin", action: "Approved profile — Dr. Priya Desai", type: "Approve", details: "Profile v2 approved and published", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 12, timestamp: "Mar 29, 2026 · 11:15 AM", initials: "VS", name: "Prof. Vivek Shah", role: "Faculty", action: "Logged in to faculty portal", type: "Login", details: "Login from Safari on iPhone", ip: "192.168.1.78", avatarBg: "#FEF9C3", avatarText: "#854D0E" },
-  { id: 13, timestamp: "Mar 28, 2026 · 3:00 PM", initials: "SB", name: "Dr. Sneha Bhat", role: "Faculty", action: "Uploaded CV", type: "Upload", details: "CV_SnehaBhat_Mar2026.pdf — 1.8MB uploaded", ip: "192.168.1.91", avatarBg: "#FDF4FF", avatarText: "#6B21A8" },
-  { id: 14, timestamp: "Mar 28, 2026 · 1:45 PM", initials: "VM", name: "Dr. Vijay Mehta", role: "Faculty", action: "Edited profile — Publications", type: "Edit", details: "1 conference paper added", ip: "192.168.1.113", avatarBg: "#FFE4E6", avatarText: "#9F1239" },
-  { id: 15, timestamp: "Mar 27, 2026 · 9:30 AM", initials: "AD", name: "Admin", role: "Admin", action: "Rejected profile — Prof. Rohit Naik", type: "Reject", details: "Profile rejected: Insufficient content across all sections", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 16, timestamp: "Mar 26, 2026 · 2:00 PM", initials: "MS", name: "Prof. Meera Sharma", role: "Faculty", action: "Submitted profile for review", type: "Submit", details: "Profile v1 — first submission", ip: "192.168.1.130", avatarBg: "#FEF3C7", avatarText: "#78350F" },
-  { id: 17, timestamp: "Mar 25, 2026 · 11:00 AM", initials: "AR", name: "Dr. Anil Rao", role: "Faculty", action: "Updated research keywords", type: "Edit", details: "Keywords updated: added 'NLP', 'Transformer Models'", ip: "192.168.1.22", avatarBg: "#DBEAFE", avatarText: "#1E3A8A" },
-  { id: 18, timestamp: "Mar 24, 2026 · 10:15 AM", initials: "SK", name: "Prof. Sunita Kadam", role: "Faculty", action: "Uploaded CV", type: "Upload", details: "CV_SunitaKadam_2026.pdf — 3.1MB uploaded", ip: "192.168.1.88", avatarBg: "#D1FAE5", avatarText: "#065F46" },
-  { id: 19, timestamp: "Mar 22, 2026 · 3:30 PM", initials: "AD", name: "Admin", role: "Admin", action: "Sent revision request — Prof. Sunita Kadam", type: "Revision", details: "Revision requested: Please verify publication DOI links", ip: "10.0.0.1", avatarBg: "#EDE9FE", avatarText: "#4C1D95" },
-  { id: 20, timestamp: "Mar 20, 2026 · 9:00 AM", initials: "RN", name: "Prof. Rohit Naik", role: "Faculty", action: "Logged in to faculty portal", type: "Login", details: "Login from Firefox on Windows", ip: "192.168.1.145", avatarBg: "#F0FDF4", avatarText: "#166534" },
-];
-
 const getTypeBadge = (type: string) => {
-  switch (type) {
-    case "Submit":
+  if (!type) return "bg-slate-100 text-slate-600";
+  const t = type.toLowerCase();
+  switch (t) {
+    case "submit":
       return "bg-blue-100 text-blue-900";
-    case "Approve":
+    case "approve":
       return "bg-green-100 text-green-900";
-    case "Revision":
-    case "Message":
+    case "revision":
       return "bg-amber-100 text-amber-900";
-    case "Reject":
-      return "bg-red-100 text-red-700";
-    case "Upload":
-      return "bg-purple-100 text-purple-900";
-    case "Login":
-    case "Edit":
+    case "message":
+      return "bg-[#FFF4EE] text-[#7C2D00]";
+    case "login":
+      return "bg-gray-100 text-gray-500";
     default:
       return "bg-slate-100 text-slate-600";
   }
 };
 
 export default function AdminAuditLogPage() {
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [actionFilter, setActionFilter] = useState("All Actions");
+  const [actionFilter, setActionFilter] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All Users");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 20;
+
+  useEffect(() => {
+    async function fetchAuditLog() {
+      const { data } = await supabase
+        .from("audit_log")
+        .select("*, faculty_profiles(name)")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (data) {
+        setLogs(data as any);
+      }
+    }
+    fetchAuditLog();
+  }, []);
 
   const handleFilterChange = () => {
     setCurrentPage(1);
@@ -77,52 +66,55 @@ export default function AdminAuditLogPage() {
   const clearFilters = () => {
     setDateFrom("");
     setDateTo("");
-    setActionFilter("All Actions");
+    setActionFilter("All");
     setRoleFilter("All Users");
     setSearchQuery("");
     setCurrentPage(1);
   };
 
   const filteredLog = useMemo(() => {
-    return auditLog.filter((entry) => {
+    return logs.filter((entry) => {
+      const role = entry.actor === "admin" ? "Admin" : "Faculty";
+      
       // Role Filter
-      if (roleFilter !== "All Users" && entry.role !== roleFilter) return false;
+      if (roleFilter !== "All Users" && role !== roleFilter) return false;
 
       // Action Type Filter
-      if (actionFilter !== "All Actions") {
-        const keywordMap: Record<string, string> = {
-          "Profile Submit": "Submit",
-          "Profile Approve": "Approve",
-          "Profile Revision": "Revision",
-          "Profile Reject": "Reject",
-          "Message Sent": "Message",
-          "CV Upload": "Upload",
-          "Login": "Login",
-          "Profile Edit": "Edit",
-        };
-        const mappedType = keywordMap[actionFilter];
-        if (entry.type !== mappedType) return false;
+      if (actionFilter !== "All") {
+        if (entry.action?.toLowerCase() !== actionFilter.toLowerCase()) return false;
       }
 
       // Search Query Filter
       if (searchQuery.trim() !== "") {
         const q = searchQuery.toLowerCase();
+        const details = entry.detail || "";
+        const name = role === "Admin" ? "Admin" : (entry.faculty_profiles?.name || "Unknown");
+        const actionStr = entry.action || "";
+        
         if (
-          !entry.name.toLowerCase().includes(q) &&
-          !entry.details.toLowerCase().includes(q) &&
-          !entry.action.toLowerCase().includes(q)
+          !name.toLowerCase().includes(q) &&
+          !details.toLowerCase().includes(q) &&
+          !actionStr.toLowerCase().includes(q)
         ) {
           return false;
         }
       }
 
-      // Date filtering (mock implementation for textual dates)
-      // We skip actual Date parsing logic for the mock since it contains string formats like "Apr 3, 2026"
-      // If needed fully, we would parse "entry.timestamp".
+      // Date filtering
+      if (dateFrom || dateTo) {
+        const entryDate = new Date(entry.created_at);
+        if (dateFrom && entryDate < new Date(dateFrom)) return false;
+        // set end of day for dateTo
+        if (dateTo) {
+          const endDate = new Date(dateTo);
+          endDate.setHours(23, 59, 59, 999);
+          if (entryDate > endDate) return false;
+        }
+      }
 
       return true;
     });
-  }, [actionFilter, roleFilter, searchQuery, dateFrom, dateTo]);
+  }, [logs, actionFilter, roleFilter, searchQuery, dateFrom, dateTo]);
 
   const totalPages = Math.ceil(filteredLog.length / rowsPerPage);
   const paginatedLog = useMemo(() => {
@@ -136,31 +128,32 @@ export default function AdminAuditLogPage() {
       "User",
       "Role",
       "Action",
-      "Type",
-      "Details",
-      "IP Address",
+      "Details"
     ];
-    const rows = filteredLog.map((e) => [
-      `"${e.timestamp}"`,
-      `"${e.name}"`,
-      e.role,
-      `"${e.action}"`,
-      e.type,
-      `"${e.details}"`,
-      e.ip,
-    ]);
+    const rows = filteredLog.map((e) => {
+      const name = e.actor === "admin" ? "Admin" : (e.faculty_profiles?.name || "Unknown");
+      const role = e.actor === "admin" ? "Admin" : "Faculty";
+      return [
+        `"${new Date(e.created_at).toLocaleString()}"`,
+        `"${name}"`,
+        role,
+        `"${e.action}"`,
+        `"${e.detail || ""}"`
+      ];
+    });
 
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
     const today = new Date().toISOString().split("T")[0];
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `fpmp-audit-log-${today}.csv`);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audit_log_${today}.csv`);
     document.body.appendChild(link);
     link.click();
     link.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -186,16 +179,16 @@ export default function AdminAuditLogPage() {
       {/* STAT CHIPS ROW */}
       <div className="flex flex-wrap items-center gap-2 px-6 py-4">
         <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-slate-600">
-          247 Total Actions
+          {logs.length} Total Actions
         </span>
         <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-blue-900">
-          12 Submissions
+          {logs.filter(l => l.action === "submit").length} Submissions
         </span>
         <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-green-900">
-          8 Approvals
+          {logs.filter(l => l.action === "approve").length} Approvals
         </span>
         <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-red-700">
-          3 Revisions Sent
+          {logs.filter(l => l.action === "revision").length} Revisions Sent
         </span>
       </div>
 
@@ -219,24 +212,23 @@ export default function AdminAuditLogPage() {
           }}
           className="h-[38px] w-full max-w-[150px] rounded-lg border border-slate-300 bg-white px-2.5 font-body text-[13px] text-slate-900 shadow-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-primary/10"
         />
-        <select
-          value={actionFilter}
-          onChange={(e) => {
-            setActionFilter(e.target.value);
-            handleFilterChange();
-          }}
-          className="h-[38px] w-full max-w-[160px] rounded-lg border border-slate-300 bg-white px-3 font-body text-[13px] text-slate-900 shadow-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-primary/10"
-        >
-          <option>All Actions</option>
-          <option>Profile Submit</option>
-          <option>Profile Approve</option>
-          <option>Profile Revision</option>
-          <option>Profile Reject</option>
-          <option>Message Sent</option>
-          <option>CV Upload</option>
-          <option>Login</option>
-          <option>Profile Edit</option>
-        </select>
+        <div className="flex flex-wrap gap-1">
+          {["All", "Submit", "Approve", "Message", "Login", "Revision"].map((type) => (
+            <button
+              key={type}
+              onClick={() => {
+                setActionFilter(type);
+                handleFilterChange();
+              }}
+              className={`h-[38px] rounded-lg px-4 font-body text-[13px] font-semibold transition-colors ${
+                actionFilter === type
+                  ? "bg-slate-800 text-white"
+                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+            </button>
+          ))}
+        </div>
         <select
           value={roleFilter}
           onChange={(e) => {
@@ -303,9 +295,6 @@ export default function AdminAuditLogPage() {
                 <th className="border-b-2 border-slate-200 px-[14px] py-[10px] text-left font-label text-[11px] font-bold uppercase tracking-wide text-slate-400">
                   Details
                 </th>
-                <th className="border-b-2 border-slate-200 px-[14px] py-[10px] text-left font-label text-[11px] font-bold uppercase tracking-wide text-slate-400 md:table-cell hidden">
-                  IP Address
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -319,66 +308,66 @@ export default function AdminAuditLogPage() {
                   </td>
                 </tr>
               ) : (
-                paginatedLog.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="group border-b border-slate-200 transition-colors hover:bg-slate-50 last:border-0"
-                  >
-                    <td className="px-[14px] py-[11px] align-middle font-body text-[12px] text-slate-400 whitespace-nowrap md:table-cell hidden">
-                      {log.timestamp}
-                    </td>
-                    <td className="px-[14px] py-[11px] align-middle">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full font-headline text-[10px] font-bold shadow-sm"
-                          style={{
-                            backgroundColor: log.avatarBg,
-                            color: log.avatarText,
-                          }}
-                        >
-                          {log.initials}
-                        </div>
-                        <div className="font-headline text-[13px] font-medium text-slate-900">
-                          {log.name}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-[14px] py-[11px] align-middle">
-                      {log.role === "Admin" ? (
-                        <span className="rounded-full bg-purple-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-purple-900">
-                          Admin
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-slate-600">
-                          Faculty
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-[14px] py-[11px] align-middle font-body text-[13px] text-slate-900">
-                      {log.action}
-                    </td>
-                    <td className="px-[14px] py-[11px] align-middle">
-                      <span
-                        className={`rounded-full px-2 py-0.5 font-label text-[10px] font-bold tracking-wider ${getTypeBadge(
-                          log.type
-                        )}`}
-                      >
-                        {log.type}
-                      </span>
-                    </td>
-                    <td
-                      className="px-[14px] py-[11px] align-middle font-body text-[12px] text-slate-500"
-                      title={log.details}
+                paginatedLog.map((log) => {
+                  const role = log.actor === "admin" ? "Admin" : "Faculty";
+                  const name = log.actor === "admin" ? "Admin" : (log.faculty_profiles?.name || "Unknown");
+                  const initials = name.substring(0,2).toUpperCase();
+                  const actionTypeCap = log.action ? log.action.charAt(0).toUpperCase() + log.action.slice(1) : "Unknown";
+
+                  return (
+                    <tr
+                      key={log.id}
+                      className="group border-b border-slate-200 transition-colors hover:bg-slate-50 last:border-0"
                     >
-                      <div className="max-w-[240px] overflow-hidden text-ellipsis whitespace-nowrap">
-                        {log.details}
-                      </div>
-                    </td>
-                    <td className="px-[14px] py-[11px] align-middle font-mono text-[11px] text-slate-400 md:table-cell hidden">
-                      {log.ip}
-                    </td>
-                  </tr>
-                ))
+                      <td className="px-[14px] py-[11px] align-middle font-body text-[12px] text-slate-400 whitespace-nowrap md:table-cell hidden">
+                        {new Date(log.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </td>
+                      <td className="px-[14px] py-[11px] align-middle">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full font-headline text-[10px] font-bold shadow-sm bg-slate-200 text-slate-700"
+                          >
+                            {initials}
+                          </div>
+                          <div className="font-headline text-[13px] font-medium text-slate-900">
+                            {name}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-[14px] py-[11px] align-middle">
+                        {role === "Admin" ? (
+                          <span className="rounded-full bg-purple-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-purple-900">
+                            Admin
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-slate-600">
+                            Faculty
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-[14px] py-[11px] align-middle font-body text-[13px] text-slate-900">
+                        {log.detail || `${actionTypeCap} performed`}
+                      </td>
+                      <td className="px-[14px] py-[11px] align-middle">
+                        <span
+                          className={`rounded-full px-2 py-0.5 font-label text-[10px] font-bold tracking-wider ${getTypeBadge(
+                            log.action
+                          )}`}
+                        >
+                          {actionTypeCap}
+                        </span>
+                      </td>
+                      <td
+                        className="px-[14px] py-[11px] align-middle font-body text-[12px] text-slate-500"
+                        title={log.detail}
+                      >
+                        <div className="max-w-[240px] overflow-hidden text-ellipsis whitespace-nowrap">
+                          {log.detail || "-"}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
