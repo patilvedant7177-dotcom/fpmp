@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     if (type === "contact") {
       emailSubject = "[FPMP] " + subject;
-      html = contactEmailHtml(messageBody, fromName, toName);
+      html = contactEmailHtml(messageBody!, fromName!, toName!);
       
       // Save to database for faculty inbox
       // First, find the faculty profile ID from the email (to)
@@ -156,13 +156,13 @@ export async function POST(request: NextRequest) {
         await supabase.from('messages').insert({
           from_admin: false,
           to_faculty: profile.id,
-          subject: subject,
+          subject: subject!,
           body: `From: ${fromName}\n\n${messageBody}`,
         });
       }
     } else {
       emailSubject = "[Admin Notice] " + subject;
-      html = adminEmailHtml(messageBody);
+      html = adminEmailHtml(messageBody!);
     }
 
     const { data, error } = await resend.emails.send({
