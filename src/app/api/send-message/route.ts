@@ -101,15 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await request.json();
-    const { to, toName, fromName, subject, body: messageBody, type, senderEmail } = payload as {
-      to?: string;
-      toName?: string;
-      fromName?: string;
-      subject?: string;
-      body?: string;
-      type?: string;
-      senderEmail?: string;
-    };
+    const { to, toName, fromName, subject, body: messageBody, type, senderEmail } = payload as Record<string, string | undefined>;
 
     const missingFields = [];
     if (!to) missingFields.push("to");
@@ -127,7 +119,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (type !== "contact" && type !== "admin") {
+    // Now we know they exist, cast them for TypeScript
+    const validatedTo = to as string;
+    const validatedToName = toName as string;
+    const validatedFromName = fromName as string;
+    const validatedSubject = subject as string;
+    const validatedBody = messageBody as string;
+    const validatedType = type as string;
+
+    if (validatedType !== "contact" && validatedType !== "admin") {
       return NextResponse.json(
         { error: "Invalid type: must be 'contact' or 'admin'." },
         { status: 400 },
@@ -140,34 +140,33 @@ export async function POST(request: NextRequest) {
     let emailSubject: string;
     let html: string;
 
-    if (type === "contact") {
-      emailSubject = "[FPMP] " + subject;
-      html = contactEmailHtml(messageBody!, fromName!, toName!);
+    if (validatedType === "contact") {
+      emailSubject = "[FPMP] " + validatedSubject;
+      html = contactEmailHtml(validatedBody, validatedFromName, validatedToName);
       
       // Save to database for faculty inbox
-      // First, find the faculty profile ID from the email (to)
       const { data: profile } = await supabase
         .from('faculty_profiles')
         .select('id')
-        .eq('email', to)
+        .eq('email', validatedTo)
         .maybeSingle();
 
       if (profile) {
         await supabase.from('messages').insert({
           from_admin: false,
           to_faculty: profile.id,
-          subject: subject!,
-          body: `From: ${fromName}\n\n${messageBody}`,
+          subject: validatedSubject,
+          body: `From: ${validatedFromName}\n\n${validatedBody}`,
         });
       }
     } else {
-      emailSubject = "[Admin Notice] " + subject;
-      html = adminEmailHtml(messageBody!);
+      emailSubject = "[Admin Notice] " + validatedSubject;
+      html = adminEmailHtml(validatedBody);
     }
 
     const { data, error } = await resend.emails.send({
       from: `FPMP Portal <${fromEmail}>`,
-      to,
+      to: validatedTo,
       reply_to: senderEmail,
       subject: emailSubject,
       html,
