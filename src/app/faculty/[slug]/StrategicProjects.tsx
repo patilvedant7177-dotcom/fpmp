@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Rocket, Lightbulb, Briefcase, Zap, X, Globe, Calendar, User } from "lucide-react";
-import SectionHeader from "./SectionHeader"; // Wait, SectionHeader is in page.tsx. I should move it or re-create it.
+
 
 const SectionHeaderLocal = ({ title, count }: { title: string; count?: number }) => (
   <div className="mb-4 flex items-center justify-between border-b border-outline-variant/30 pb-2">
