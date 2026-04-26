@@ -4,12 +4,12 @@ import React, { useState } from "react";
 import { BookOpen, Globe, X, Calendar, Bookmark, Hash, ExternalLink } from "lucide-react";
 
 const SectionHeaderLocal = ({ title, count }: { title: string; count?: number }) => (
-  <div className="mb-4 flex items-center justify-between border-b border-outline-variant/30 pb-2">
-    <h3 className="font-label text-[11px] font-bold uppercase tracking-widest text-outline">
+  <div className="mb-8 flex items-center justify-between border-b border-slate-200 pb-3">
+    <h3 className="font-label text-[12px] font-bold uppercase tracking-[0.2em] text-slate-500">
       {title}
     </h3>
     {count !== undefined && (
-      <span className="rounded-full bg-primary px-2 py-0.5 font-label text-[10px] font-bold text-on-primary">
+      <span className="rounded-full bg-blue-100 px-3 py-1 font-label text-[10px] font-bold text-blue-700 ring-1 ring-blue-700/10">
         {count} items
       </span>
     )}
@@ -37,40 +37,40 @@ export default function ResearchPublications({ publications }: { publications: P
           <div 
             key={idx} 
             onClick={() => setActivePub(paper)}
-            className="group relative cursor-pointer overflow-hidden rounded-3xl border border-outline-variant/20 bg-white p-7 transition-all duration-300 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.99]"
+            className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-white p-7 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-slate-900/5 transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:ring-blue-600/20 active:scale-[0.99]"
           >
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/5 opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-150" />
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-50 opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-150" />
             
             <div className="relative z-10">
               <div className="mb-3 flex flex-wrap gap-2">
                 {paper.index_tag && (
-                  <span className="rounded bg-blue-50 px-2 py-0.5 font-label text-[9px] font-bold text-blue-700 uppercase tracking-widest border border-blue-100 shadow-sm">
+                  <span className="rounded bg-indigo-50 px-2 py-0.5 font-label text-[9px] font-bold text-indigo-700 uppercase tracking-widest border border-indigo-100 shadow-sm">
                     {paper.index_tag}
                   </span>
                 )}
                 {paper.award && (
-                  <span className="rounded bg-amber-50 px-2 py-0.5 font-label text-[9px] font-bold text-amber-700 uppercase tracking-widest border border-amber-100 shadow-sm">
+                  <span className="rounded bg-orange-50 px-2 py-0.5 font-label text-[9px] font-bold text-orange-700 uppercase tracking-widest border border-orange-100 shadow-sm">
                     {paper.award}
                   </span>
                 )}
-                <span className="ml-auto font-label text-[10px] font-bold text-outline">#{idx + 1}</span>
+                <span className="ml-auto font-label text-[10px] font-bold text-slate-400">#{idx + 1}</span>
               </div>
 
-              <h4 className="mb-4 font-headline text-[16px] font-bold text-primary leading-snug transition-colors group-hover:text-blue-800">
+              <h4 className="mb-4 font-headline text-[16px] font-bold text-slate-800 leading-snug transition-colors group-hover:text-blue-700">
                 {paper.title}
               </h4>
               
-              <div className="flex flex-col gap-3 border-t border-outline-variant/10 pt-4">
-                <div className="flex items-start gap-2.5 font-body text-[13px] text-secondary">
-                  <BookOpen size={16} className="mt-0.5 shrink-0 text-primary/60" />
+              <div className="flex flex-col gap-3 border-t border-slate-100 pt-4">
+                <div className="flex items-start gap-2.5 font-body text-[13px] text-slate-600">
+                  <BookOpen size={16} className="mt-0.5 shrink-0 text-slate-400" />
                   <span className="leading-tight">
-                    <span className="font-semibold text-primary/80">{paper.journal || paper.venue}</span>
-                    {paper.year && <span className="ml-2 text-outline font-medium">({paper.year})</span>}
+                    <span className="font-semibold text-slate-700">{paper.journal || paper.venue}</span>
+                    {paper.year && <span className="ml-2 text-slate-500 font-medium">({paper.year})</span>}
                   </span>
                 </div>
 
                 {paper.doi && (
-                  <div className="flex items-center gap-2.5 font-body text-[11px] text-outline italic">
+                  <div className="flex items-center gap-2.5 font-body text-[11px] text-slate-400 italic">
                     <Globe size={14} className="shrink-0" />
                     <span className="truncate">DOI: {paper.doi}</span>
                   </div>
