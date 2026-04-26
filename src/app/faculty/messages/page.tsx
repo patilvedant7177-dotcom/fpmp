@@ -62,7 +62,7 @@ export default function FacultyMessagesPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
-        const { data: profile } = await supabase.from('faculty_profiles').select('id').eq('user_id', user.id).maybeSingle();
+        const { data: profile } = await supabase.from('faculty_profiles').select('id, name').eq('user_id', user.id).maybeSingle();
         if (!profile) return;
 
         const profileId = profile.id;
@@ -87,8 +87,9 @@ export default function FacultyMessagesPage() {
           const readMsgs = JSON.parse(localStorage.getItem('fpmp_read_messages') || '[]');
           
           const mapped = msgs.filter(msg => {
-            // Filter out messages sent BY the faculty to anyone (admin or other faculty)
-            return !(msg.from_admin === false && msg.body?.includes('[FACULTY_SENT]'));
+            // Filter out messages sent BY the faculty to admin (stored as to_faculty = self)
+            // But KEEP messages sent BY other faculty to this faculty (peer messaging)
+            return !(msg.from_admin === false && msg.body?.includes(`[FACULTY_SENT] From: ${profile.name}`));
           }).map(msg => {
             let sender = msg.from_admin ? "FPMP Administration" : "System";
             let type: "Direct" | "Broadcast" | "External" = msg.to_faculty === null ? "Broadcast" : "Direct";

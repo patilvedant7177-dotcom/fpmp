@@ -226,6 +226,7 @@ export default function AdminAuditLogPage() {
                   : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
               }`}
             >
+              {type}
             </button>
           ))}
         </div>

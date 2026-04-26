@@ -67,7 +67,9 @@ export default function AdminDashboardPage() {
       const deptMap: Record<string, { total: number; sum: number }> = {};
 
       const formattedFaculty = profiles.map(f => {
-        const status = f.profile_status || "draft";
+        let status = f.profile_status || "draft";
+        if (status === "reviewed") status = "approved";
+        
         if (status === "approved") app++;
         if (status === "pending_review") pen++;
         if (status === "revision") rev++;
@@ -129,6 +131,33 @@ export default function AdminDashboardPage() {
     }
     fetchDashboardData();
   }, []);
+
+  const [isNewAnnModalOpen, setIsNewAnnModalOpen] = useState(false);
+  const [newAnnMessage, setNewAnnMessage] = useState("");
+  const [isAddingAnn, setIsAddingAnn] = useState(false);
+
+  const handleAddAnnouncement = async () => {
+    if (!newAnnMessage.trim()) return;
+    setIsAddingAnn(true);
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert({ message: newAnnMessage, is_active: true })
+        .select();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setAnnouncements([data[0], ...announcements]);
+        setNewAnnMessage("");
+        setIsNewAnnModalOpen(false);
+      }
+    } catch (e) {
+      alert("Failed to add announcement");
+    } finally {
+      setIsAddingAnn(false);
+    }
+  };
   return (
     <AdminLayout>
       {/* PAGE HEADER */}
@@ -370,7 +399,10 @@ export default function AdminDashboardPage() {
             <h3 className="font-headline text-[15px] font-bold text-slate-900">
               Announcement Manager
             </h3>
-            <button className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-headline text-[13px] font-semibold text-white shadow-sm hover:opacity-90">
+            <button 
+              onClick={() => setIsNewAnnModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 font-headline text-[13px] font-semibold text-white shadow-sm hover:opacity-90"
+            >
               <Plus size={14} /> New
             </button>
           </div>
@@ -402,6 +434,42 @@ export default function AdminDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* NEW ANNOUNCEMENT MODAL */}
+      {isNewAnnModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-all animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="mb-4 font-headline text-[18px] font-bold text-slate-900">
+              New Announcement
+            </h3>
+            <p className="mb-4 font-body text-[14px] text-slate-500">
+              This message will be broadcasted to all faculty members on their dashboard.
+            </p>
+            <textarea
+              value={newAnnMessage}
+              onChange={(e) => setNewAnnMessage(e.target.value)}
+              placeholder="Type your announcement here..."
+              rows={4}
+              className="mb-6 w-full rounded-xl border border-slate-200 bg-slate-50 p-4 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsNewAnnModalOpen(false)}
+                className="rounded-lg px-4 py-2 font-headline text-[14px] font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddAnnouncement}
+                disabled={isAddingAnn || !newAnnMessage.trim()}
+                className="rounded-lg bg-primary px-6 py-2 font-headline text-[14px] font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+              >
+                {isAddingAnn ? "Posting..." : "Post Announcement"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

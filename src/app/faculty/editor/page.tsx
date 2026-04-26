@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import FacultyLayout from "@/components/faculty/FacultyLayout";
 import { Save, Send, Plus, Trash2, CheckCircle2, ChevronRight, Camera, Loader2, XCircle, Sparkles, X, RotateCcw } from "lucide-react";
 
-type Tab = "Basic Info" | "About" | "Education" | "Publications" | "Projects" | "Awards" | "Certifications" | "Keywords" | "Memberships" | "Additional Info";
+type Tab = "Basic Info" | "About" | "Education" | "Publications" | "Projects" | "Awards" | "Certifications" | "Gallery" | "Keywords" | "Memberships" | "Additional Info";
 
 const calculateCompletion = (profile: any) => {
   let score = 0;
@@ -55,7 +55,8 @@ export default function FacultyEditorPage() {
       researchgate: "",
       twitter: "",
       website: ""
-    }
+    },
+    gallery: [] as any[]
   });
 
   useEffect(() => {
@@ -105,8 +106,21 @@ export default function FacultyEditorPage() {
             researchgate: "",
             twitter: "",
             website: ""
-          }
+          },
+          gallery: [] as any[]
         };
+
+        // Resiliently fetch gallery
+        try {
+          const { data: galleryData } = await supabase
+            .from('faculty_gallery')
+            .select('*')
+            .eq('faculty_id', profileData.id)
+            .order('order_index', { ascending: true });
+          if (galleryData) base.gallery = galleryData.map((g: any) => ({ ...g, image_url: g.image_url || "", caption: g.caption || "", category: g.category || "General" }));
+        } catch (e) {
+          console.warn("Gallery table missing or fetch failed:", e);
+        }
 
         // Resiliently fetch projects (might fail if table not created yet)
         try {
@@ -251,6 +265,13 @@ export default function FacultyEditorPage() {
           .update({ custom_sections: formData.custom_sections })
           .eq('id', profile.id);
         if (error) throw error;
+      } else if (activeTab === "Gallery") {
+        // Gallery handled by dedicated upload/delete functions, but we can sync captions here if needed
+        const { error } = await supabase
+          .from('faculty_profiles')
+          .update({ note_to_admin: formData.note_to_admin }) // Just a placeholder for gallery tab save if needed
+          .eq('id', profile.id);
+        if (error) throw error;
       } else if (["Education", "Publications", "Projects", "Awards", "Certifications"].includes(activeTab)) {
         const table = activeTab.toLowerCase();
         // Delete and Insert
@@ -316,7 +337,7 @@ export default function FacultyEditorPage() {
 
       // 2. Insert Audit Log
       const { error: auditError } = await supabase
-        .from('audit_logs')
+        .from('audit_log')
         .insert({
           faculty_id: profile.id,
           actor: 'faculty',
@@ -335,6 +356,101 @@ export default function FacultyEditorPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !profile) return;
+
+    try {
+      setIsSaving(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const newPhotos = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `avatars/${user.id}/gallery_${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        // Insert into faculty_gallery table
+        const { data: inserted, error: dbError } = await supabase
+          .from('faculty_gallery')
+          .insert({
+            faculty_id: profile.id,
+            image_url: publicUrl,
+            caption: "",
+            category: "General",
+            order_index: formData.gallery.length + i
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+        newPhotos.push(inserted);
+      }
+
+      setFormData({ ...formData, gallery: [...formData.gallery, ...newPhotos] });
+      showToast(`${files.length} photo(s) uploaded!`, "success");
+    } catch (err: any) {
+      console.error("Gallery upload error:", err);
+      showToast("Error uploading photos.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleGalleryDelete = async (photoId: string, imageUrl: string) => {
+    if (!confirm("Are you sure you want to delete this photo?")) return;
+
+    try {
+      setIsSaving(true);
+      
+      // Delete from DB
+      const { error: dbError } = await supabase
+        .from('faculty_gallery')
+        .delete()
+        .eq('id', photoId);
+
+      if (dbError) throw dbError;
+
+      // Delete from Storage (extract path from URL)
+      const path = imageUrl.split('avatars/').pop();
+      if (path) {
+        await supabase.storage.from('avatars').remove([path]);
+      }
+
+      setFormData({ 
+        ...formData, 
+        gallery: formData.gallery.filter((g: any) => g.id !== photoId) 
+      });
+      showToast("Photo deleted", "success");
+    } catch (err: any) {
+      console.error("Gallery delete error:", err);
+      showToast("Error deleting photo.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateCaption = async (id: string, caption: string) => {
+     const newList = formData.gallery.map((g: any) => g.id === id ? { ...g, caption } : g);
+     setFormData({ ...formData, gallery: newList });
+     
+     // Debounced or direct update to DB
+     await supabase.from('faculty_gallery').update({ caption }).eq('id', id);
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,7 +493,7 @@ export default function FacultyEditorPage() {
     }
   };
 
-  const tabs: Tab[] = ["Basic Info", "About", "Education", "Publications", "Projects", "Awards", "Certifications", "Keywords", "Memberships", "Additional Info"];
+  const tabs: Tab[] = ["Basic Info", "About", "Education", "Publications", "Projects", "Awards", "Certifications", "Gallery", "Keywords", "Memberships", "Additional Info"];
 
   if (loading) {
     return (
@@ -933,6 +1049,57 @@ export default function FacultyEditorPage() {
                       <Plus size={16} /> Add Certification
                     </button>
                   </div>
+                </div>
+              )}
+
+              {activeTab === "Gallery" && (
+                <div className="flex flex-col gap-5 pb-12">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <h2 className="font-headline text-[18px] font-bold text-primary">Professional Activity Gallery</h2>
+                      <p className="font-body text-[13px] text-secondary">Showcase your seminars, lectures, and academic events.</p>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-headline text-[13px] font-bold text-on-primary transition-all hover:scale-105 shadow-md active:scale-95">
+                      <Plus size={16} /> Upload Photos
+                      <input type="file" className="hidden" accept="image/*" multiple onChange={handleGalleryUpload} />
+                    </label>
+                  </div>
+
+                  {formData.gallery.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-64 rounded-2xl border-2 border-dashed border-outline-variant/30 bg-surface-container-low text-center p-8">
+                       <Camera size={48} className="text-outline/40 mb-3" />
+                       <p className="font-headline text-[15px] font-bold text-primary">No photos yet</p>
+                       <p className="mt-1 font-body text-[13px] text-secondary max-w-xs">Upload photos of you attending seminars, taking lectures, or receiving awards.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {formData.gallery.map((photo: any) => (
+                        <div key={photo.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface shadow-sm transition-all hover:shadow-md">
+                          <div className="relative aspect-video overflow-hidden">
+                            <img src={photo.image_url} alt="Gallery" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center">
+                              <button 
+                                onClick={() => handleGalleryDelete(photo.id, photo.image_url)}
+                                className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <label className="font-label text-[10px] font-bold uppercase tracking-widest text-outline block mb-1">Caption</label>
+                            <input 
+                              type="text" 
+                              value={photo.caption} 
+                              placeholder="e.g. Keynote at ICSE 2024"
+                              onChange={(e) => handleUpdateCaption(photo.id, e.target.value)}
+                              className="w-full border-b border-outline-variant/50 bg-transparent py-1 font-body text-[13px] text-primary focus:border-primary outline-none transition-colors"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

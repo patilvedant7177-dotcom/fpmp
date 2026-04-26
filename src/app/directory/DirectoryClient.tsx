@@ -12,7 +12,7 @@ interface FacultyMember {
   name: string;
   designation: string;
   department: string;
-  keywords: string[];
+  keywords?: string[] | null;
   status: "approved" | "pending" | "draft";
   completion: number;
   views: number;
@@ -61,13 +61,13 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
       const matchSearch =
         member.name.toLowerCase().includes(q) ||
         member.department.toLowerCase().includes(q) ||
-        member.keywords.some((kw) => kw.toLowerCase().includes(q));
+        (member.keywords?.some((kw) => kw.toLowerCase().includes(q)) ?? false);
 
       const matchDept = deptFilter === "All" || member.department === deptFilter;
       const matchDesign =
         designFilter === "All" || member.designation === designFilter;
       const matchKeyword =
-        activeKeyword === "All" || member.keywords.includes(activeKeyword);
+        activeKeyword === "All" || (member.keywords?.includes(activeKeyword) ?? false);
 
       return matchSearch && matchDept && matchDesign && matchKeyword;
     });
@@ -236,7 +236,7 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
                   </div>
 
                   <div className="mt-auto flex flex-wrap justify-center gap-1.5 pt-4">
-                    {member.keywords.slice(0, 3).map((kw, i) => (
+                    {member.keywords?.slice(0, 3).map((kw, i) => (
                       <span
                         key={i}
                         className="rounded-md bg-surface-container-low px-2 py-1 font-label text-[9px] uppercase tracking-wider text-secondary"
@@ -287,7 +287,7 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
                 </div>
 
                 <div className="hidden flex-1 shrink-0 flex-wrap gap-1.5 px-8 md:flex">
-                  {member.keywords.slice(0, 3).map((kw, i) => (
+                  {member.keywords?.slice(0, 3).map((kw, i) => (
                     <span
                       key={i}
                       className="rounded-md bg-surface-container-low px-2 py-1 font-label text-[9px] uppercase tracking-wider text-secondary"
@@ -295,9 +295,9 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
                       {kw}
                     </span>
                   ))}
-                  {member.keywords.length > 3 && (
+                  {(member.keywords?.length ?? 0) > 3 && (
                     <span className="rounded-md bg-surface-container-low px-2 py-1 font-label text-[9px] uppercase tracking-wider text-secondary">
-                      +{member.keywords.length - 3}
+                      +{(member.keywords?.length ?? 0) - 3}
                     </span>
                   )}
                 </div>

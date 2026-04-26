@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
   Send,
@@ -33,7 +34,8 @@ interface DBMessage {
 type MessageType = "Direct" | "Broadcast";
 type SentFilter = "All" | "Direct" | "Broadcast";
 
-export default function AdminMessagingPage() {
+function MessagingContent() {
+  const searchParams = useSearchParams();
   const [allFaculty, setAllFaculty] = useState<FacultyOption[]>([]);
   const [sentMessages, setSentMessages] = useState<DBMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,8 +55,9 @@ export default function AdminMessagingPage() {
   const [errors, setErrors] = useState({ subject: false, body: false });
 
   // Sent Messages State
-  const [sentFilter, setSentFilter] = useState<SentFilter | "Inbox">("All");
+  const [sentFilter, setSentFilter] = useState<SentFilter | "Inbox" | "Drafts">("All");
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<any[]>([]);
 
   const fetchMessages = async () => {
     const { data } = await supabase
@@ -77,7 +80,24 @@ export default function AdminMessagingPage() {
     Promise.all([fetchMessages(), fetchFaculty()]).then(() => {
       setIsLoading(false);
     });
+    // Load drafts from localStorage
+    const savedDrafts = localStorage.getItem("admin_message_drafts");
+    if (savedDrafts) setDrafts(JSON.parse(savedDrafts));
   }, []);
+
+  // Handle pre-selected faculty from query params
+  useEffect(() => {
+    if (allFaculty.length > 0) {
+      const selectIds = searchParams.get('select')?.split(',');
+      if (selectIds && selectIds.length > 0) {
+        const selected = allFaculty.filter(f => selectIds.includes(f.id));
+        if (selected.length > 0) {
+          setSelectedFaculty(selected);
+          setMessageType("Direct");
+        }
+      }
+    }
+  }, [allFaculty, searchParams]);
 
   const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
@@ -116,6 +136,38 @@ export default function AdminMessagingPage() {
     } else {
       setSelectedFaculty([...selectedFaculty, faculty]);
     }
+  };
+
+  const handleSaveDraft = () => {
+    const newDraft = {
+      id: `draft-${Date.now()}`,
+      subject,
+      body,
+      type: messageType,
+      faculty: selectedFaculty,
+      sent_at: new Date().toISOString(),
+      is_draft: true
+    };
+    const updatedDrafts = [newDraft, ...drafts];
+    setDrafts(updatedDrafts);
+    localStorage.setItem("admin_message_drafts", JSON.stringify(updatedDrafts));
+    setToastMsg("Draft saved!");
+    setTimeout(() => setToastMsg(""), 2000);
+  };
+
+  const handleUseDraft = (draft: any) => {
+    setSubject(draft.subject);
+    setBody(draft.body);
+    setMessageType(draft.type);
+    setSelectedFaculty(draft.faculty || []);
+    setSentFilter("All");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    const updated = drafts.filter(d => d.id !== id);
+    setDrafts(updated);
+    localStorage.setItem("admin_message_drafts", JSON.stringify(updated));
   };
 
   const handleSend = async () => {
@@ -219,6 +271,7 @@ export default function AdminMessagingPage() {
   };
 
   const filteredSentMessages = sentMessages.filter((m) => {
+    if (sentFilter === "Drafts") return false; // Handled separately
     if (sentFilter === "Inbox") {
       return !m.from_admin;
     }
@@ -476,7 +529,10 @@ export default function AdminMessagingPage() {
                 {getPreviewInfo()}
               </span>
               <div className="flex w-full items-center gap-2 md:w-auto">
-                <button className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 font-headline text-[13px] font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 md:flex-none">
+                <button 
+                  onClick={handleSaveDraft}
+                  className="flex-1 rounded-lg border border-slate-300 bg-white px-4 py-2 font-headline text-[13px] font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 md:flex-none"
+                >
                   Save Draft
                 </button>
                 <button
@@ -497,12 +553,12 @@ export default function AdminMessagingPage() {
             <h2 className="font-headline text-[15px] font-bold text-slate-900">
               Message History
             </h2>
-            <div className="flex gap-1">
-              {(["All", "Direct", "Broadcast", "Inbox"] as (SentFilter | "Inbox")[]).map((tab) => (
+            <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
+              {(["All", "Direct", "Broadcast", "Inbox", "Drafts"] as (SentFilter | "Inbox" | "Drafts")[]).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSentFilter(tab)}
-                  className={`rounded-full px-2.5 py-1 font-headline text-[11px] font-semibold transition-colors ${
+                  className={`rounded-full px-2.5 py-1 font-headline text-[11px] font-semibold transition-colors whitespace-nowrap ${
                     sentFilter === tab
                       ? "bg-slate-900 text-white"
                       : "border border-slate-200 text-slate-500 hover:bg-slate-50"
@@ -515,82 +571,105 @@ export default function AdminMessagingPage() {
           </div>
 
           <div className="flex flex-col overflow-y-auto pr-1" style={{ maxHeight: "600px" }}>
-            {filteredSentMessages.map((msg) => {
-              const isExpanded = expandedMessageId === msg.id;
-
-              return (
-                <div
-                  key={msg.id}
-                  className="group flex flex-col border-b border-slate-200 last:border-0"
-                >
-                  <div
-                    className="cursor-pointer py-3 transition-colors hover:bg-slate-50 px-1"
-                    onClick={() =>
-                      setExpandedMessageId(isExpanded ? null : msg.id)
-                    }
+            {sentFilter === "Drafts" ? (
+              drafts.map((draft) => (
+                <div key={draft.id} className="group flex flex-col border-b border-slate-200 last:border-0 p-3 hover:bg-slate-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-slate-600">
+                      Draft
+                    </span>
+                    <button onClick={() => handleDeleteDraft(draft.id)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <h3 className="font-headline text-[13px] font-bold text-slate-900 truncate mb-1">{draft.subject || "(No Subject)"}</h3>
+                  <p className="font-body text-[12px] text-slate-500 line-clamp-2 mb-3">{draft.body || "(No content)"}</p>
+                  <button 
+                    onClick={() => handleUseDraft(draft)}
+                    className="w-full rounded-md border border-primary/20 bg-primary/5 py-1.5 font-headline text-[11px] font-bold text-primary hover:bg-primary/10 transition-colors"
                   >
-                    <div className="mb-1.5 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 overflow-hidden">
-                        {!msg.from_admin ? (
-                          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-emerald-900">
-                            Faculty Inbound
+                    Edit Draft
+                  </button>
+                </div>
+              ))
+            ) : (
+              filteredSentMessages.map((msg) => {
+                const isExpanded = expandedMessageId === msg.id;
+
+                return (
+                  <div
+                    key={msg.id}
+                    className="group flex flex-col border-b border-slate-200 last:border-0"
+                  >
+                    <div
+                      className="cursor-pointer py-3 transition-colors hover:bg-slate-50 px-1"
+                      onClick={() =>
+                        setExpandedMessageId(isExpanded ? null : msg.id)
+                      }
+                    >
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          {!msg.from_admin ? (
+                            <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-emerald-900">
+                              Faculty Inbound
+                            </span>
+                          ) : msg.to_faculty === null ? (
+                            <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-blue-900">
+                              Broadcast
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-purple-900">
+                              Direct
+                            </span>
+                          )}
+                          <span className="truncate font-headline text-[13px] font-medium text-slate-900">
+                            {msg.subject}
                           </span>
-                        ) : msg.to_faculty === null ? (
-                          <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-blue-900">
-                            Broadcast
-                          </span>
-                        ) : (
-                          <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-purple-900">
-                            Direct
-                          </span>
-                        )}
-                        <span className="truncate font-headline text-[13px] font-medium text-slate-900">
-                          {msg.subject}
+                        </div>
+                        <span className="shrink-0 font-body text-[11px] text-slate-400">
+                          {new Date(msg.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                         </span>
                       </div>
-                      <span className="shrink-0 font-body text-[11px] text-slate-400">
-                        {new Date(msg.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                      </span>
-                    </div>
 
-                    <div className="flex items-center justify-between px-0.5">
-                      <span className="truncate font-body text-[12px] text-slate-500">
-                        {msg.from_admin ? "To: " : "From: "}{msg.to_faculty === null ? "All Faculty" : (msg.faculty_profiles?.name || "Unknown Faculty")}
-                      </span>
-                      <div className="flex shrink-0 items-center gap-1 font-body text-[11px] text-slate-400">
-                        <span>{msg.from_admin ? "Delivered" : "Received"}</span>
-                        <CheckCircle2 size={12} className="text-green-600" />
+                      <div className="flex items-center justify-between px-0.5">
+                        <span className="truncate font-body text-[12px] text-slate-500">
+                          {msg.from_admin ? "To: " : "From: "}{msg.to_faculty === null ? "All Faculty" : (msg.faculty_profiles?.name || "Unknown Faculty")}
+                        </span>
+                        <div className="flex shrink-0 items-center gap-1 font-body text-[11px] text-slate-400">
+                          <span>{msg.from_admin ? "Delivered" : "Received"}</span>
+                          <CheckCircle2 size={12} className="text-green-600" />
+                        </div>
                       </div>
                     </div>
+
+                    {isExpanded && (
+                      <div className="border-t border-slate-200 bg-slate-50 p-3">
+                        <p className="whitespace-pre-wrap font-body text-[13px] leading-[1.7] text-slate-600">
+                          {msg.body}
+                        </p>
+                        <div className="mt-3 text-right">
+                          {!msg.from_admin && (
+                            <button 
+                              onClick={() => handleAdminReply(msg)}
+                              className="rounded-md bg-primary px-4 py-1 font-headline text-[12px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                            >
+                              Reply to Faculty
+                            </button>
+                          )}
+                          {msg.from_admin && (
+                            <button className="rounded-md border border-slate-300 px-3 py-1 font-headline text-[12px] font-semibold text-slate-500 transition-colors hover:bg-white hover:text-slate-900">
+                              Resend
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {isExpanded && (
-                    <div className="border-t border-slate-200 bg-slate-50 p-3">
-                      <p className="whitespace-pre-wrap font-body text-[13px] leading-[1.7] text-slate-600">
-                        {msg.body}
-                      </p>
-                      <div className="mt-3 text-right">
-                        {!msg.from_admin && (
-                          <button 
-                            onClick={() => handleAdminReply(msg)}
-                            className="rounded-md bg-primary px-4 py-1 font-headline text-[12px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
-                          >
-                            Reply to Faculty
-                          </button>
-                        )}
-                        {msg.from_admin && (
-                          <button className="rounded-md border border-slate-300 px-3 py-1 font-headline text-[12px] font-semibold text-slate-500 transition-colors hover:bg-white hover:text-slate-900">
-                            Resend
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })
+            )}
             
-            {filteredSentMessages.length === 0 && (
+            {((sentFilter === "Drafts" && drafts.length === 0) || (sentFilter !== "Drafts" && filteredSentMessages.length === 0)) && (
               <div className="py-8 text-center font-body text-sm text-slate-500">
                 No messages in this category.
               </div>
@@ -599,5 +678,13 @@ export default function AdminMessagingPage() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+export default function AdminMessagingPage() {
+  return (
+    <Suspense fallback={<div>Loading messaging...</div>}>
+      <MessagingContent />
+    </Suspense>
   );
 }

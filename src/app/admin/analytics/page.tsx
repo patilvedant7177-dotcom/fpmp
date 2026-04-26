@@ -35,7 +35,9 @@ export default function AnalyticsDashboardPage() {
       const kwMap: Record<string, number> = {};
 
       const mappedFac = profiles.map(f => {
-        const s = f.profile_status || "draft";
+        let s = f.profile_status || "draft";
+        if (s === "reviewed") s = "approved"; // Legacy mapping
+        
         if (["approved", "pending_review", "revision"].includes(s)) active++;
         
         statusMap[s] = (statusMap[s] || 0) + 1;
@@ -66,11 +68,19 @@ export default function AnalyticsDashboardPage() {
         };
       });
 
+      // Fetch Inquiries (messages where from_admin is false)
+      const { count: msgCount } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('from_admin', false)
+        .like('body', 'From:%');
+
       setStats({
         totalViews,
         avgCompletion: Math.round(totalCompletion / total),
         activeFaculty: active,
-        totalFaculty: total
+        totalFaculty: total,
+        inquiries: msgCount || 0
       });
 
       // Top Faculty (Sorted by actual views)
@@ -104,18 +114,55 @@ export default function AnalyticsDashboardPage() {
         .map(([kw, freq]) => ({ kw, freq, size: Math.max(10, 10 + freq) }));
       setSearchKeywords(kws);
 
-      // Mock Monthly Activity since we need historical data
-      setMonthlyActivity([
-         { month: "Nov", value: 4 },
-         { month: "Dec", value: 2 },
-         { month: "Jan", value: 7 },
-         { month: "Feb", value: 11 },
-         { month: "Mar", value: 15 },
-         { month: "Apr", value: 6 },
-      ]);
+      // Fetch real monthly activity from audit_log
+      const { data: auditData } = await supabase
+        .from('audit_log')
+        .select('created_at')
+        .eq('action', 'submit');
+      
+      if (auditData) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const activityMap: Record<string, number> = {};
+        // Initialize last 6 months
+        const now = new Date();
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          activityMap[months[d.getMonth()]] = 0;
+        }
+
+        auditData.forEach(log => {
+          const m = months[new Date(log.created_at).getMonth()];
+          if (activityMap[m] !== undefined) activityMap[m]++;
+        });
+
+        setMonthlyActivity(Object.entries(activityMap).map(([month, value]) => ({ month, value })));
+      }
     }
     loadData();
   }, []);
+
+  const handleSendNudge = async (faculty: any) => {
+    try {
+      const { error } = await supabase.from('messages').insert({
+        from_admin: true,
+        to_faculty: faculty.id,
+        subject: "Action Required: Profile Completion",
+        body: `Dear ${faculty.name},\n\nWe noticed your profile completion is at ${faculty.completion}%. Please update your profile with your latest achievements, publications, and certifications.\n\nRegards,\nFPMP Admin`
+      });
+
+      if (error) throw error;
+
+      await supabase.from('audit_log').insert({
+        actor: 'admin',
+        action: 'message',
+        detail: `Sent completion nudge to ${faculty.name}`
+      });
+
+      alert(`Nudge sent to ${faculty.name}`);
+    } catch (e) {
+      alert("Failed to send nudge");
+    }
+  };
 
   return (
     <AdminLayout>
@@ -225,7 +272,7 @@ export default function AnalyticsDashboardPage() {
             Student Messages <span className="normal-case opacity-70">(via profile)</span>
           </div>
           <div className="font-headline text-[28px] font-bold text-slate-900">
-            0
+            {stats.inquiries}
           </div>
           <div className="mt-1 flex items-center gap-1">
             <span className="font-headline text-[12px] font-semibold text-slate-500">
@@ -500,7 +547,7 @@ export default function AnalyticsDashboardPage() {
                   </span>
                 </div>
                 <button
-                  onClick={() => alert(`Nudge sent to ${f.name}`)}
+                  onClick={() => handleSendNudge(f)}
                   className="rounded-md border border-[#FCD9C0] bg-[#FFF4EE] px-3 py-1 font-headline text-[12px] font-medium text-primary transition-colors hover:bg-[#FDE8DB]"
                 >
                   Send Nudge

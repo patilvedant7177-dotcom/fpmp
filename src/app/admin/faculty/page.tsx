@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronUp,
   ChevronDown,
@@ -18,6 +19,8 @@ import { supabase } from "@/lib/supabase";
 
 interface FacultyRow {
   id: string;
+  userId?: string;
+  email?: string;
   initials: string;
   name: string;
   desig: string;
@@ -39,6 +42,7 @@ const StatusBadge = ({ status }: { status: string }) => {
         </span>
       );
     case "pending":
+    case "pending_review":
       return (
         <span className="rounded-full bg-amber-100 px-2.5 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-amber-800">
           Pending Review
@@ -63,6 +67,7 @@ type SortColumn = "name" | "dept" | "desig" | "status" | "completion" | "views";
 type SortDirection = "asc" | "desc";
 
 export default function AdminFacultyPage() {
+  const router = useRouter();
   const [facultyData, setFacultyData] = useState<FacultyRow[]>([]);
   const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, revision: 0 });
 
@@ -80,19 +85,24 @@ export default function AdminFacultyPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('faculty_profiles').select('*');
+      const { data } = await supabase.from('faculty_profiles').select('*, user_id');
       if (!data) return;
 
       let app = 0, pen = 0, rev = 0;
       
       const mapped = data.map((f: any) => {
-        const s = f.profile_status || "draft";
+        let s = f.profile_status || "draft";
+        if (s === "reviewed") s = "approved";
+        if (s === "pending") s = "pending_review";
+
         if (s === "approved") app++;
         if (s === "pending_review") pen++;
         if (s === "revision") rev++;
 
         return {
           id: f.id,
+          userId: f.user_id,
+          email: f.email,
           initials: (f.name ?? "NA").substring(0, 2).toUpperCase(),
           name: f.name || "Untitled",
           desig: f.designation || "Unknown",
@@ -110,6 +120,22 @@ export default function AdminFacultyPage() {
     }
     load();
   }, []);
+
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setIsInviting(true);
+    // Mock invite logic: In real app, this would send an email and create a user/profile
+    setTimeout(() => {
+      alert(`Invitation sent to ${inviteEmail}`);
+      setInviteEmail("");
+      setIsInviteModalOpen(false);
+      setIsInviting(false);
+    }, 1000);
+  };
 
   // Derive filtered sorting
   const filteredData = useMemo(() => {
@@ -262,7 +288,10 @@ export default function AdminFacultyPage() {
           >
             Export CSV
           </button>
-          <button className="rounded-lg bg-primary px-4 py-2 font-headline text-[13px] font-bold text-white shadow-sm transition-opacity hover:opacity-90">
+          <button 
+            onClick={() => setIsInviteModalOpen(true)}
+            className="rounded-lg bg-primary px-4 py-2 font-headline text-[13px] font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+          >
             Invite Faculty
           </button>
         </div>
@@ -393,7 +422,13 @@ export default function AdminFacultyPage() {
             {selectedIds.size} faculty selected
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <button className="flex items-center gap-1.5 rounded-md border border-white/30 px-3 py-1.5 font-headline text-[12px] font-semibold text-white transition-colors hover:bg-white/10">
+            <button 
+              onClick={() => {
+                const ids = Array.from(selectedIds).join(',');
+                router.push(`/admin/messaging?select=${ids}`);
+              }}
+              className="flex items-center gap-1.5 rounded-md border border-white/30 px-3 py-1.5 font-headline text-[12px] font-semibold text-white transition-colors hover:bg-white/10"
+            >
               <MessageSquare size={14} /> Send Broadcast
             </button>
             <button
@@ -552,6 +587,40 @@ export default function AdminFacultyPage() {
                       </td>
                       <td className="px-[14px] py-[11px] align-middle">
                         <div className="flex gap-1.5">
+                          {!f.userId && (
+                            <button
+                              onClick={async () => {
+                                if (!f.email) {
+                                  alert("Faculty must have an email in their profile first.");
+                                  return;
+                                }
+                                if (confirm(`Create login account for ${f.name} using ${f.email}?`)) {
+                                  const res = await fetch('/api/admin/create-faculty-account', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ email: f.email, name: f.name, profileId: f.id })
+                                  });
+                                  const data = await res.json();
+                                  if (data.success) {
+                                    alert(`Account created!\nUsername: ${data.username}\nTemp Password: ${data.tempPassword}\n\nPlease share these details with the faculty member.`);
+                                    // Refresh data
+                                    window.location.reload();
+                                  } else {
+                                    alert(data.error || "Failed to create account");
+                                  }
+                                }
+                              }}
+                              className="rounded-md border border-primary bg-primary/10 px-3 py-1 font-headline text-[12px] font-bold text-primary transition-colors hover:bg-primary hover:text-white"
+                            >
+                              Create Account
+                            </button>
+                          )}
+                          {f.userId && (
+                            <span className="rounded-md bg-green-50 px-3 py-1 font-headline text-[12px] font-bold text-green-700 border border-green-200 flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                              Active Account
+                            </span>
+                          )}
                           {f.status === "pending_review" || f.status === "revision" ? (
                             <Link
                               href={`/admin/approval/${f.id}`}
@@ -619,6 +688,42 @@ export default function AdminFacultyPage() {
           </button>
         </div>
       </div>
+
+      {/* INVITE FACULTY MODAL */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-all animate-in fade-in">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="mb-4 font-headline text-[18px] font-bold text-slate-900">
+              Invite Faculty
+            </h3>
+            <p className="mb-4 font-body text-[14px] text-slate-500">
+              Enter the faculty member's email address to send them an invitation to join the portal.
+            </p>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="faculty@crce.org"
+              className="mb-6 w-full rounded-xl border border-slate-200 bg-slate-50 p-4 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsInviteModalOpen(false)}
+                className="rounded-lg px-4 py-2 font-headline text-[14px] font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleInvite}
+                disabled={isInviting || !inviteEmail.trim() || !inviteEmail.includes('@')}
+                className="rounded-lg bg-primary px-6 py-2 font-headline text-[14px] font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+              >
+                {isInviting ? "Sending..." : "Send Invitation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

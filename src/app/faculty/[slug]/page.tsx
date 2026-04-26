@@ -21,6 +21,7 @@ import AnalyticsCharts from "./AnalyticsCharts";
 import StrategicProjects from "./StrategicProjects";
 import ResearchPublications from "./ResearchPublications";
 import ViewCounter from "@/components/profile/ViewCounter";
+import ActivityGallery from "./ActivityGallery";
 
 const STORAGE_URL = "https://sxnxvwdqefmtnnkqldmv.supabase.co/storage/v1/object/public/avatars/";
 
@@ -84,6 +85,19 @@ export default async function FacultyProfile({ params }: PageProps) {
     profile.projects = [];
   }
 
+  // Resiliently fetch gallery
+  try {
+    const { data: galleryData } = await supabase
+      .from('faculty_gallery')
+      .select('*')
+      .eq('faculty_id', profile.id)
+      .order('order_index', { ascending: true });
+    profile.faculty_gallery = galleryData || [];
+  } catch (e) {
+    console.warn("Gallery fetch failed:", e);
+    profile.faculty_gallery = [];
+  }
+
   // View increment handled by client component to avoid caching issues
 
   // Analytics Processing
@@ -126,7 +140,8 @@ export default async function FacultyProfile({ params }: PageProps) {
     const { count } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
-      .eq('faculty_id', profile.id);
+      .eq('to_faculty', profile.id)
+      .like('body', 'From:%');
     inquiriesCount = count || 0;
   } catch (e) {
     console.warn("Messages count fetch failed:", e);
@@ -174,62 +189,51 @@ export default async function FacultyProfile({ params }: PageProps) {
   const initials = getInitials(profile.name);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8FAFC] font-body text-on-surface selection:bg-primary/20">
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] h-[70vh] w-[70vw] rounded-full bg-gradient-to-br from-blue-100/40 to-transparent blur-[100px]" />
-        <div className="absolute top-[40%] -right-[10%] h-[60vh] w-[60vw] rounded-full bg-gradient-to-tl from-indigo-100/40 to-transparent blur-[120px]" />
-      </div>
-      <div className="relative z-10 no-print">
+    <div className="flex min-h-screen flex-col bg-surface font-body text-on-surface">
+      <div className="no-print">
         <PublicNavbar />
       </div>
 
       <ViewCounter profileId={profile.id} />
-      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-6 pb-12 pt-24 md:px-12">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-12 pt-24 md:px-12">
         {/* BACK BUTTON */}
         <div className="py-6 no-print">
-          <Link href="/directory" className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition-colors hover:text-primary">
+          <Link href="/directory" className="group inline-flex items-center gap-2 text-sm font-medium text-secondary transition-colors hover:text-primary">
             <span className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1">arrow_back</span>
             Back to Directory
           </Link>
         </div>
 
         {/* PROFILE HERO BANNER */}
-        <div className="relative mb-16 overflow-hidden rounded-[2.5rem] bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 md:p-12 lg:p-16 flex flex-col gap-8 md:flex-row md:items-center group/hero transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)]">
-          {/* Decorative background for hero */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 to-white/10 pointer-events-none" />
-          <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-50/50 blur-3xl transition-transform duration-700 group-hover/hero:scale-150" />
-          
-          <div className="relative flex h-[160px] w-[160px] shrink-0 items-center justify-center rounded-[2rem] bg-surface shadow-xl ring-4 ring-white overflow-hidden group">
+        <div className="mb-10 flex flex-col gap-8 overflow-hidden rounded-2xl border border-outline-variant/30 bg-gradient-to-br from-surface-container-high to-surface-container-highest p-8 shadow-sm md:flex-row md:items-start">
+          <div className="relative flex h-[140px] w-[140px] shrink-0 items-center justify-center rounded-2xl bg-surface shadow-md border-4 border-surface overflow-hidden group">
             {profile.avatar_url ? (
               <Image 
                 src={`${STORAGE_URL}${profile.avatar_url}`} 
                 alt={profile.name} 
                 fill 
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                className="object-cover"
               />
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                <span className="text-4xl font-extrabold text-primary/40">{initials}</span>
+              <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
+                <span className="text-3xl font-extrabold text-primary opacity-40">{initials}</span>
               </div>
             )}
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-               <span className="text-[11px] font-bold text-white uppercase tracking-[0.2em]">Public Profile</span>
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+               <span className="text-[10px] font-bold text-white uppercase tracking-wider">Public Profile</span>
             </div>
           </div>
 
-          <div className="relative z-10 flex-1 space-y-4">
-            <div>
-              <h1 className="mb-2 font-headline text-4xl sm:text-5xl font-black tracking-tight text-slate-900 drop-shadow-sm">
-                {profile.name}
-              </h1>
-              <p className="font-body text-lg font-medium text-slate-600">
-                {profile.designation} <span className="mx-2 text-slate-300">•</span> <span className="text-primary/80">{profile.experience || "N/A experience"}</span>
-              </p>
-            </div>
+          <div className="flex-1">
+            <h1 className="mb-1 font-headline text-[32px] font-extrabold tracking-tighter text-primary">
+              {profile.name}
+            </h1>
+            <p className="mb-4 font-body text-[15px] font-medium text-secondary">
+              {profile.designation} — {profile.experience || "N/A experience"}
+            </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-4 py-1.5 font-label text-[12px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-blue-700/10 shadow-sm">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <span className="rounded-md bg-primary px-3 py-1 font-label text-[11px] font-bold uppercase tracking-wider text-on-primary">
                 {profile.department}
               </span>
 
@@ -287,13 +291,15 @@ export default async function FacultyProfile({ params }: PageProps) {
           </div>
         </div>
 
+        {/* ACTIVITY GALLERY (NO-PRINT) */}
+        <ActivityGallery items={profile.faculty_gallery || []} />
+
         {/* PROFILE OVERVIEW & KEYWORDS */}
-        <div className="mb-16 grid grid-cols-1 gap-12 lg:grid-cols-3">
+        <div className="mb-12 grid grid-cols-1 gap-10 lg:grid-cols-3">
           <section className="lg:col-span-2">
             <SectionHeader title="Expertise Overview" />
-            <div className="relative rounded-[2rem] bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 group transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)]">
-              <div className="absolute -left-3 top-8 h-12 w-1.5 rounded-r-full bg-primary transition-all duration-300 group-hover:h-20 group-hover:bg-blue-600" />
-              <p className="font-body text-[16px] leading-loose text-slate-600 relative z-10">
+            <div className="relative rounded-2xl bg-surface-container-low/20 p-1">
+              <p className="font-body text-[15px] leading-relaxed text-secondary border-l-[4px] border-primary/60 pl-6 py-2">
                 {profile.about}
               </p>
             </div>
@@ -302,11 +308,11 @@ export default async function FacultyProfile({ params }: PageProps) {
           {profile.keywords && profile.keywords.length > 0 && (
             <section>
               <SectionHeader title="Research Focus" />
-              <div className="flex flex-wrap gap-2 pt-2">
-                {profile.keywords.map((kw: string) => (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {profile.keywords?.map((kw: string) => (
                   <span
                     key={kw}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 font-label text-[11px] font-bold uppercase tracking-wider text-slate-600 transition-all hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:shadow-sm hover:-translate-y-0.5 cursor-default"
+                    className="rounded-full border border-outline-variant/30 bg-surface px-4 py-1.5 font-label text-[10px] font-bold uppercase tracking-wider text-secondary transition-all hover:border-primary/50 hover:text-primary"
                   >
                     {kw}
                   </span>
@@ -346,14 +352,14 @@ export default async function FacultyProfile({ params }: PageProps) {
             <section>
               <SectionHeader title="Career Milestones" />
               {timelineData.length > 0 ? (
-                <div className="relative pl-[24px] border-l-[3px] border-slate-200 py-4 space-y-10 my-2">
+                <div className="relative pl-[24px] border-l-[3px] border-outline-variant/20 py-4 space-y-10 my-2">
                   {timelineData.map((node: any, i: number) => (
                     <div key={i} className="relative group">
-                      <div className={`absolute -left-[31.5px] top-1.5 h-3.5 w-3.5 rounded-full ring-[5px] ring-white bg-white transition-all duration-500 group-hover:scale-150 ${node.type === 'award' ? 'border-[4px] border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.4)]' : 'border-[4px] border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.4)]'}`} />
-                      <div className="space-y-2 bg-white p-6 rounded-2xl shadow-sm ring-1 ring-slate-900/5 hover:ring-blue-600/20 hover:shadow-md transition-all duration-300">
-                        <span className="font-label text-[10px] font-bold text-slate-400 tracking-widest uppercase">{node.year}</span>
-                        <h4 className="font-headline text-[16px] font-black text-slate-800 leading-tight group-hover:text-blue-700 transition-colors">{node.title || node.degree}</h4>
-                        <p className="font-body text-[14px] text-slate-600 leading-relaxed">{node.subtitle || node.organization || node.body || node.institution}</p>
+                      <div className={`absolute -left-[31.5px] top-1.5 h-3.5 w-3.5 rounded-full ring-[5px] ring-surface bg-surface transition-all group-hover:scale-125 ${node.type === 'award' ? 'border-[4px] border-[#E8580A]' : 'border-[4px] border-[#2563EB]'}`} />
+                      <div className="space-y-2 bg-surface-container-low/20 p-5 rounded-2xl border border-transparent hover:border-outline-variant/30 hover:bg-surface transition-all">
+                        <span className="font-label text-[10px] font-bold text-outline tracking-widest uppercase">{node.year}</span>
+                        <h4 className="font-headline text-[16px] font-black text-primary leading-tight">{node.title || node.degree}</h4>
+                        <p className="font-body text-[14px] text-secondary leading-relaxed">{node.subtitle || node.organization || node.body || node.institution}</p>
                       </div>
                     </div>
                   ))}
@@ -369,15 +375,15 @@ export default async function FacultyProfile({ params }: PageProps) {
                 <SectionHeader title="Academic Pedigree" />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {educationPedigree.map((edu: any, idx: number) => (
-                    <div key={idx} className="flex flex-col rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md hover:ring-blue-600/20 group">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white group-hover:rotate-12 transition-all duration-300 shadow-sm">
-                          <GraduationCap size={22} />
+                    <div key={idx} className="flex flex-col rounded-2xl border border-outline-variant/20 bg-gradient-to-br from-surface to-surface-container-low p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/20 group">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <GraduationCap size={20} />
                         </div>
-                        <span className="rounded-full bg-slate-50 px-3 py-1 font-label text-[10px] font-bold text-slate-500 tracking-wider ring-1 ring-slate-200">{edu.year}</span>
+                        <span className="font-label text-[11px] font-bold text-outline tracking-wider">{edu.year}</span>
                       </div>
-                      <h4 className="font-headline text-[15px] font-bold text-slate-800 leading-tight group-hover:text-blue-700 transition-colors">{edu.degree}</h4>
-                      <p className="mt-2 font-body text-[13px] text-slate-500">{edu.institution}</p>
+                      <h4 className="font-headline text-[14px] font-bold text-primary leading-tight">{edu.degree}</h4>
+                      <p className="mt-1 font-body text-[12px] text-secondary opacity-80">{edu.institution}</p>
                     </div>
                   ))}
                 </div>
@@ -396,17 +402,17 @@ export default async function FacultyProfile({ params }: PageProps) {
               {invitedTalks.length > 0 ? (
                 <ExpandableList>
                   {invitedTalks.map((talk: any, idx: number) => (
-                    <div key={idx} className="mb-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:ring-blue-600/20 hover:shadow-md">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-headline text-[15px] font-bold text-slate-800">{talk.topic}</h4>
+                    <div key={idx} className="mb-4 rounded-2xl border border-outline-variant/20 bg-surface p-6 transition-all hover:border-primary/30 hover:shadow-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-headline text-[15px] font-bold text-primary">{talk.topic}</h4>
                         {talk.mode === "online" ? (
                           <span className="rounded-full bg-emerald-50 px-3 py-1 font-label text-[9px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-100">Online</span>
                         ) : (
                           <span className="rounded-full bg-slate-50 px-3 py-1 font-label text-[9px] font-bold uppercase tracking-wider text-slate-600 border border-slate-200">Offline</span>
                         )}
                       </div>
-                      <p className="font-body text-[13px] text-slate-500 flex items-center gap-2">
-                        <Globe size={14} className="text-slate-400" />
+                      <p className="font-body text-[13px] text-secondary flex items-center gap-2">
+                        <Globe size={14} className="text-outline" />
                         {talk.event} • {talk.date}
                       </p>
                     </div>
@@ -423,13 +429,13 @@ export default async function FacultyProfile({ params }: PageProps) {
                 <SectionHeader title="Professional Credentials" count={certifications.length} />
                 <div className="grid grid-cols-1 gap-4">
                   {certifications.map((cert: any, idx: number) => (
-                    <div key={idx} className="group relative flex items-center gap-5 overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md hover:ring-blue-600/20">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
+                    <div key={idx} className="group relative flex items-center gap-5 overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface p-5 transition-all hover:border-primary/40 hover:shadow-md">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-all">
                         <span className="material-symbols-outlined text-[24px]">verified</span>
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-headline text-[15px] font-bold text-slate-800 group-hover:text-blue-700 transition-colors">{cert.name}</h4>
-                        <p className="font-body text-[13px] text-slate-500">{cert.org} • {cert.year}</p>
+                        <h4 className="font-headline text-[15px] font-bold text-primary">{cert.name}</h4>
+                        <p className="font-body text-[12px] text-secondary opacity-70">{cert.org} • {cert.year}</p>
                       </div>
                     </div>
                   ))}
@@ -438,7 +444,7 @@ export default async function FacultyProfile({ params }: PageProps) {
             )}
 
             <section className="pt-6 no-print">
-               <div className="rounded-3xl bg-blue-50/50 p-2 ring-1 ring-blue-100 backdrop-blur-sm">
+               <div className="rounded-3xl bg-primary/5 p-1">
                  <ContactForm facultyName={profile.name} facultyEmail={profile.email} />
                </div>
             </section>

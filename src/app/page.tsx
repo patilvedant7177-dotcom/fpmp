@@ -2,13 +2,32 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import PublicNavbar from "@/components/shared/PublicNavbar";
+import { supabase } from "@/lib/supabase";
+
 const CAMPUS_IMAGE_SRC =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCtcKqjSUj1-Mge2utuTfZmSm5DhkJhJ0d1T6WhwnOENzr4y3Pie8PxVymCw_VV5WHZFv08xcUjbRdMhAIuViCioUUsWpzzIaacJ7cgzJj78kN4UjVQbgv7DA1ROvO6b_Lru8aEZiSI4IdpNm6v7F6gcFDqfQMVdglmIslFvKV17JeKfemgSNzQY4UzIyzgDOsFq3tXjBMzXsPJB9Xe9FKKJVDkcpre2Dnym_8BaUO-pLFfUPwC0abcP7yB7bHVcgSRsANCIzVN6nU";
 
 export default function HomePage() {
+  const [counts, setCounts] = useState({ faculty: 0, departments: 0 });
+
   useEffect(() => {
+    async function fetchCounts() {
+      const { data: profiles } = await supabase.from('faculty_profiles').select('department');
+      if (profiles) {
+        const totalFaculty = profiles.length;
+        const uniqueDepts = new Set(profiles.map(p => p.department).filter(Boolean)).size;
+        setCounts({ faculty: totalFaculty, departments: uniqueDepts });
+      }
+    }
+    fetchCounts();
+  }, []);
+
+  useEffect(() => {
+    // Only run animation if we have data
+    if (counts.faculty === 0) return;
+
     const counters = document.querySelectorAll<HTMLElement>(".counter");
 
     const observer = new IntersectionObserver((entries) => {
@@ -46,7 +65,7 @@ export default function HomePage() {
     counters.forEach(c => observer.observe(c));
 
     return () => observer.disconnect();
-  }, []);
+  }, [counts.faculty, counts.departments]);
 
   return (
     <div className="bg-surface font-body text-on-surface min-h-screen">
@@ -83,8 +102,8 @@ export default function HomePage() {
               <div className="grid grid-cols-2 items-start gap-8 border-t border-outline-variant/20 pt-12">
                 <div>
                   <div className="font-headline mb-1 text-4xl font-extrabold tracking-tighter text-primary">
-                    <span className="counter" data-target="4200">
-                      4,200
+                    <span className="counter" data-target={counts.faculty}>
+                      0
                     </span>
                     +
                   </div>
@@ -94,8 +113,8 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div className="font-headline mb-1 text-4xl font-extrabold tracking-tighter text-primary">
-                    <span className="counter" data-target="128">
-                      128
+                    <span className="counter" data-target={counts.departments}>
+                      0
                     </span>
                   </div>
                   <div className="font-label text-[0.7rem] font-semibold uppercase tracking-widest text-outline">

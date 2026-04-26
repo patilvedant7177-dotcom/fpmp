@@ -176,7 +176,7 @@ export default function ProfileApprovalPage() {
         .from("faculty_profiles")
         .update({
           status: "approved",
-          profile_status: "reviewed",
+          profile_status: "approved",
           approved_snapshot: snapshot,
         } as never)
         .eq("id", profile.id);
@@ -184,13 +184,13 @@ export default function ProfileApprovalPage() {
         if (uErr.message?.includes("approved_snapshot") || uErr.code === "42703") {
           const { error: u2 } = await supabase
             .from("faculty_profiles")
-            .update({ status: "approved", profile_status: "reviewed" })
+            .update({ status: "approved", profile_status: "approved" })
             .eq("id", profile.id);
           if (u2) throw u2;
         } else throw uErr;
       }
 
-      const { error: aErr } = await supabase.from("audit_logs").insert({
+      const { error: aErr } = await supabase.from("audit_log").insert({
         faculty_id: profile.id,
         actor: "admin",
         action: "approve",
@@ -234,7 +234,7 @@ export default function ProfileApprovalPage() {
       });
       if (mErr) throw mErr;
 
-      const { error: aErr } = await supabase.from("audit_logs").insert({
+      const { error: aErr } = await supabase.from("audit_log").insert({
         faculty_id: profile.id,
         actor: "admin",
         action: "revision",
@@ -275,7 +275,7 @@ export default function ProfileApprovalPage() {
         .eq("id", profile.id);
       if (uErr) throw uErr;
 
-      const { error: aErr } = await supabase.from("audit_logs").insert({
+      const { error: aErr } = await supabase.from("audit_log").insert({
         faculty_id: profile.id,
         actor: "admin",
         action: "reject",

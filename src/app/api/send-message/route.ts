@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
 function escapeHtml(text: string): string {
   return text
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     const resend = new Resend(apiKey);
-    const supabase = await createSupabaseServerClient();
+    const supabaseAdmin = createSupabaseAdminClient();
 
     let emailSubject: string;
     let html: string;
@@ -144,15 +144,15 @@ export async function POST(request: NextRequest) {
       emailSubject = "[FPMP] " + validatedSubject;
       html = contactEmailHtml(validatedBody, validatedFromName, validatedToName);
       
-      // Save to database for faculty inbox
-      const { data: profile } = await supabase
+      // Save to database for faculty inbox using Admin client to bypass RLS
+      const { data: profile } = await supabaseAdmin
         .from('faculty_profiles')
         .select('id')
         .eq('email', validatedTo)
         .maybeSingle();
 
       if (profile) {
-        await supabase.from('messages').insert({
+        await supabaseAdmin.from('messages').insert({
           from_admin: false,
           to_faculty: profile.id,
           subject: validatedSubject,
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await resend.emails.send({
       from: `FPMP Portal <${fromEmail}>`,
       to: validatedTo,
-      replyTo: senderEmail,
+      reply_to: senderEmail,
       subject: emailSubject,
       html,
     });
