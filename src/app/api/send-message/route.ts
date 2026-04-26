@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await resend.emails.send({
       from: `FPMP Portal <${fromEmail}>`,
       to: validatedTo,
-      reply_to: senderEmail,
+      replyTo: senderEmail,
       subject: emailSubject,
       html,
     });

@@ -17,7 +17,7 @@ export default function AnalyticsDashboardPage() {
   const [monthlyActivity, setMonthlyActivity] = useState<any[]>([]);
   const [laggards, setLaggards] = useState<any[]>([]);
   const [searchKeywords, setSearchKeywords] = useState<any[]>([]);
-  const [stats, setStats] = useState({ totalViews: 0, avgCompletion: 0, activeFaculty: 0, totalFaculty: 0 });
+  const [stats, setStats] = useState({ totalViews: 0, avgCompletion: 0, activeFaculty: 0, totalFaculty: 0, inquiries: 0 });
 
   useEffect(() => {
     async function loadData() {
