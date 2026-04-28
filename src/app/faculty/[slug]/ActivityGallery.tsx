@@ -61,10 +61,12 @@ export default function ActivityGallery({ items }: ActivityGalleryProps) {
             key={item.id}
             className="group relative h-[280px] w-[320px] flex-shrink-0 snap-start overflow-hidden rounded-2xl bg-surface-container-low shadow-sm transition-all hover:shadow-xl md:w-[400px]"
           >
-            <img 
+            <Image 
               src={item.image_url} 
               alt={item.caption || "Activity photo"} 
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+              fill
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
+              sizes="(max-width: 768px) 320px, 400px"
             />
             
             {/* Overlay Gradient */}
@@ -106,11 +108,14 @@ export default function ActivityGallery({ items }: ActivityGalleryProps) {
             <X size={32} />
           </button>
           
-          <div className="relative max-h-[85vh] max-w-[90vw] overflow-hidden rounded-xl shadow-2xl" onClick={e => e.stopPropagation()}>
-            <img 
+          <div className="relative h-[85vh] w-[90vw] overflow-hidden rounded-xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <Image 
               src={selectedImage.image_url} 
               alt={selectedImage.caption} 
-              className="max-h-[85vh] object-contain"
+              fill
+              className="object-contain"
+              sizes="90vw"
+              priority
             />
             {selectedImage.caption && (
               <div className="absolute inset-x-0 bottom-0 bg-black/60 p-6 backdrop-blur-md">

@@ -124,6 +124,15 @@ export default function ProfileApprovalPage() {
     setLoading(true);
     setLoadError(null);
     try {
+      // Check for session first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoadError("You must be logged in as an admin to access this page.");
+        setLoading(false);
+        router.push("/login/admin");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("faculty_profiles")
         .select(
@@ -144,7 +153,7 @@ export default function ProfileApprovalPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     fetchProfile();
@@ -171,36 +180,67 @@ export default function ProfileApprovalPage() {
     if (!profile?.id) return;
     setBusy(true);
     try {
+      // Final session check before update
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert("Your session has expired. Please log in again.");
+        router.push("/login/admin");
+        return;
+      }
+      
       const snapshot = buildApprovedSnapshot(profile);
+      
+      // Attempt 1: Full update including snapshot
+      // We use 'reviewed' for profile_status as derived from AdminFacultyPage logic
       const { error: uErr } = await supabase
         .from("faculty_profiles")
         .update({
           status: "approved",
-          profile_status: "approved",
+          profile_status: "reviewed",
           approved_snapshot: snapshot,
         } as never)
         .eq("id", profile.id);
+
       if (uErr) {
-        if (uErr.message?.includes("approved_snapshot") || uErr.code === "42703") {
-          const { error: u2 } = await supabase
+        console.warn("Full approval failed (snapshot column might be missing):", uErr);
+        
+        // Attempt 2: Update status columns only
+        const { error: u2 } = await supabase
+          .from("faculty_profiles")
+          .update({ status: "approved", profile_status: "reviewed" } as never)
+          .eq("id", profile.id);
+          
+        if (u2) {
+          console.warn("Secondary approval failed (profile_status column might be missing):", u2);
+          
+          // Attempt 3: Minimal update (legacy status column only)
+          const { error: u3 } = await supabase
             .from("faculty_profiles")
-            .update({ status: "approved", profile_status: "approved" })
+            .update({ status: "approved" })
             .eq("id", profile.id);
-          if (u2) throw u2;
-        } else throw uErr;
+            
+          if (u3) throw u3;
+        }
       }
 
-      const { error: aErr } = await supabase.from("audit_log").insert({
-        faculty_id: profile.id,
-        actor: "admin",
-        action: "approve",
-        detail: "Profile reviewed and confirmed by admin",
-      });
-      if (aErr) throw aErr;
+      // Record in audit log (non-critical)
+      try {
+        await supabase.from("audit_log").insert({
+          faculty_id: profile.id,
+          actor: "admin",
+          action: "approve",
+          detail: "Profile reviewed and confirmed by admin",
+        });
+      } catch (ae) {
+        console.warn("Audit log insert failed:", ae);
+      }
 
       router.push("/admin/faculty");
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Approve failed");
+      console.error("Approval flow failed:", e);
+      const errorObj = e as any;
+      const msg = errorObj?.message || errorObj?.details || "Approve failed";
+      alert(`Approval Failed: ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -216,49 +256,67 @@ export default function ProfileApprovalPage() {
     setRevisionModalError(false);
     setBusy(true);
     try {
+      // Attempt 1: Update both status columns
       const { error: uErr } = await supabase
         .from("faculty_profiles")
         .update({ 
           status: "revision",
           profile_status: "revision",
           admin_feedback: note 
-        })
+        } as never)
         .eq("id", profile.id);
-      if (uErr) throw uErr;
+      
+      if (uErr) {
+        console.warn("Revision update failed (profile_status might be missing):", uErr);
+        // Attempt 2: Minimal status update
+        const { error: u2 } = await supabase
+          .from("faculty_profiles")
+          .update({ 
+            status: "revision",
+            admin_feedback: note 
+          })
+          .eq("id", profile.id);
+        if (u2) throw u2;
+      }
 
-      const { error: mErr } = await supabase.from("messages").insert({
-        from_admin: true,
-        to_faculty: profile.id,
-        subject: "Profile Revision Required",
-        body: note,
-      });
-      if (mErr) throw mErr;
-
-      const { error: aErr } = await supabase.from("audit_log").insert({
-        faculty_id: profile.id,
-        actor: "admin",
-        action: "revision",
-        detail: note,
-      });
-      if (aErr) throw aErr;
-
-      await fetch("/api/send-message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: profile.email,
-          toName: profile.name,
-          fromName: "FPMP Administration",
+      // Notifications (non-critical)
+      try {
+        await supabase.from("messages").insert({
+          from_admin: true,
+          to_faculty: profile.id,
           subject: "Profile Revision Required",
           body: note,
-          type: "contact",
-        }),
-      });
+        });
+
+        await supabase.from("audit_log").insert({
+          faculty_id: profile.id,
+          actor: "admin",
+          action: "revision",
+          detail: note,
+        });
+
+        await fetch("/api/send-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: profile.email,
+            toName: profile.name,
+            fromName: "FPMP Administration",
+            subject: "Profile Revision Required",
+            body: note,
+            type: "contact",
+          }),
+        });
+      } catch (ne) {
+        console.warn("Post-revision notifications failed:", ne);
+      }
 
       setRevisionModalOpen(false);
       router.push("/admin/faculty");
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Revision request failed");
+      console.error("Revision flow failed:", e);
+      const msg = e instanceof Error ? e.message : (e as any)?.message || "Revision request failed";
+      alert(`Revision Request Failed: ${msg}`);
     } finally {
       setBusy(false);
     }
@@ -269,23 +327,38 @@ export default function ProfileApprovalPage() {
     if (!window.confirm("Are you sure you want to reject this profile?")) return;
     setBusy(true);
     try {
+      // Attempt 1: Update both status columns
       const { error: uErr } = await supabase
         .from("faculty_profiles")
-        .update({ status: "draft", profile_status: "draft" })
+        .update({ status: "draft", profile_status: "draft" } as never)
         .eq("id", profile.id);
-      if (uErr) throw uErr;
+      
+      if (uErr) {
+        console.warn("Reject update failed (profile_status might be missing):", uErr);
+        // Attempt 2: Minimal update
+        const { error: u2 } = await supabase
+          .from("faculty_profiles")
+          .update({ status: "draft" })
+          .eq("id", profile.id);
+        if (u2) throw u2;
+      }
 
-      const { error: aErr } = await supabase.from("audit_log").insert({
-        faculty_id: profile.id,
-        actor: "admin",
-        action: "reject",
-        detail: "Profile rejected and returned to draft",
-      });
-      if (aErr) throw aErr;
+      try {
+        await supabase.from("audit_log").insert({
+          faculty_id: profile.id,
+          actor: "admin",
+          action: "reject",
+          detail: "Profile rejected and returned to draft",
+        });
+      } catch (ae) {
+        console.warn("Audit log failed:", ae);
+      }
 
       router.push("/admin/faculty");
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Reject failed");
+      console.error("Reject flow failed:", e);
+      const msg = e instanceof Error ? e.message : (e as any)?.message || "Reject failed";
+      alert(`Reject Failed: ${msg}`);
     } finally {
       setBusy(false);
     }

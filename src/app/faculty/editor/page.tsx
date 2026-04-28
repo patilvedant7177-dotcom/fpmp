@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import FacultyLayout from "@/components/faculty/FacultyLayout";
 import { Save, Send, Plus, Trash2, CheckCircle2, ChevronRight, Camera, Loader2, XCircle, Sparkles, X, RotateCcw } from "lucide-react";
@@ -571,9 +572,15 @@ export default function FacultyEditorPage() {
             </div>
 
             <div className="relative group">
-              <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-primary/20 bg-surface-container-high transition-transform hover:scale-105">
+              <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-primary/20 bg-surface-container-high transition-transform hover:scale-105 relative">
                 {formData.avatar_url ? (
-                  <img src={formData.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
+                  <Image 
+                    src={formData.avatar_url} 
+                    alt="Avatar" 
+                    fill 
+                    className="object-cover" 
+                    sizes="64px"
+                  />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-primary/40">
                     <Camera size={24} />
@@ -1076,7 +1083,13 @@ export default function FacultyEditorPage() {
                       {formData.gallery.map((photo: any) => (
                         <div key={photo.id} className="group relative flex flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface shadow-sm transition-all hover:shadow-md">
                           <div className="relative aspect-video overflow-hidden">
-                            <img src={photo.image_url} alt="Gallery" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <Image 
+                              src={photo.image_url} 
+                              alt="Gallery" 
+                              fill 
+                              className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                              sizes="(max-width: 768px) 100vw, 350px"
+                            />
                             <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 flex items-center justify-center">
                               <button 
                                 onClick={() => handleGalleryDelete(photo.id, photo.image_url)}

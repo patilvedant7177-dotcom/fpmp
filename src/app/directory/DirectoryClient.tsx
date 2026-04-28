@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Image as ImageIcon } from "lucide-react";
 
 interface FacultyMember {
   id: string;
@@ -18,16 +17,6 @@ interface FacultyMember {
   views: number;
   avatar_url?: string;
 }
-
-const KEYWORDS_LIST = [
-  "All",
-  "VLSI",
-  "Machine Learning",
-  "IoT",
-  "Embedded Systems",
-  "Data Science",
-  "Networking",
-];
 
 const STORAGE_URL = "https://sxnxvwdqefmtnnkqldmv.supabase.co/storage/v1/object/public/avatars/";
 
@@ -49,11 +38,27 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
   const [activeKeyword, setActiveKeyword] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const depts = ["All", ...Array.from(new Set(facultyData.map((f) => f.department)))];
-  const designations = [
+  const depts = useMemo(() => ["All", ...Array.from(new Set(facultyData.map((f) => f.department)))], [facultyData]);
+  const designations = useMemo(() => [
     "All",
     ...Array.from(new Set(facultyData.map((f) => f.designation))),
-  ];
+  ], [facultyData]);
+
+  const dynamicKeywords = useMemo(() => {
+    const allKeywords = facultyData.flatMap((f) => f.keywords || []);
+    // Count frequencies
+    const freq: Record<string, number> = {};
+    allKeywords.forEach(kw => {
+      freq[kw] = (freq[kw] || 0) + 1;
+    });
+    // Sort by frequency and then alphabetically
+    const uniqueKeywords = Object.keys(freq).sort((a, b) => {
+      if (freq[b] !== freq[a]) return freq[b] - freq[a];
+      return a.localeCompare(b);
+    });
+    
+    return ["All", ...uniqueKeywords.slice(0, 15)]; // Show top 15 keywords
+  }, [facultyData]);
 
   const filteredFaculty = useMemo(() => {
     return facultyData.filter((member) => {
@@ -160,7 +165,7 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
           <span className="mr-2 font-label text-[11px] font-semibold uppercase tracking-widest text-outline">
             Keywords:
           </span>
-          {KEYWORDS_LIST.map((kw) => (
+          {dynamicKeywords.map((kw) => (
             <button
               key={kw}
               onClick={() => setActiveKeyword(kw)}
