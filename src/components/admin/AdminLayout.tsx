@@ -26,7 +26,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [pendingCount, setPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
-    async function loadPending() {
+    async function checkAuth() {
+      // 1. Quick session check
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // 2. Final verification
+        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+        if (!verifiedUser || verifiedUser.user_metadata?.role !== 'admin') {
+          window.location.href = "/login/admin";
+          return;
+        }
+      }
+
+      const user = session?.user || (await supabase.auth.getUser()).data.user;
+      if (!user || user.user_metadata?.role !== 'admin') {
+        window.location.href = "/login/admin";
+        return;
+      }
+
       const { count } = await supabase
         .from('faculty_profiles')
         .select('*', { count: 'exact', head: true })
@@ -34,7 +52,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       setPendingCount(count && count > 0 ? count : null);
     }
-    loadPending();
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session || session.user.user_metadata?.role !== 'admin') {
+        window.location.href = "/login/admin";
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [pathname]);
 
   const navItems = [

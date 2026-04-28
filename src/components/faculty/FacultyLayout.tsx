@@ -24,12 +24,29 @@ export default function FacultyLayout({ children }: FacultyLayoutProps) {
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
 
   useEffect(() => {
-    async function loadUnread() {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+    async function checkAuth() {
+      // 1. Quick session check
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // 2. Final verification if session is null
+        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+        if (!verifiedUser) {
+          window.location.href = "/login/faculty";
+          return;
+        }
+      }
+
+      const user = session?.user || (await supabase.auth.getUser()).data.user;
       if (!user) return;
 
-      // Get profile
+      // Check role
+      if (user.user_metadata?.role && user.user_metadata.role !== 'faculty' && user.user_metadata.role !== 'admin') {
+        window.location.href = "/login/faculty";
+        return;
+      }
+
+      // Load profile and unread messages
       const { data: profile } = await supabase
         .from('faculty_profiles')
         .select('id')
@@ -39,26 +56,36 @@ export default function FacultyLayout({ children }: FacultyLayoutProps) {
       if (!profile) return;
 
       const profileId = profile.id;
-
-      // Fetch messages relevant to faculty
-      const { data } = await supabase
+      const { data: messages } = await supabase
         .from('messages')
         .select('id')
         .or(`to_faculty.eq.${profileId},to_faculty.is.null`)
         .order('sent_at', { ascending: false });
 
-      if (data) {
+      if (messages) {
         let readIds: string[] = [];
         try {
           const stored = localStorage.getItem("fpmp_read_messages");
           if (stored) readIds = JSON.parse(stored);
         } catch {}
         
-        const unread = data.filter(m => !readIds.includes(m.id)).length;
+        const unread = messages.filter(m => !readIds.includes(m.id)).length;
         setUnreadCount(unread > 0 ? unread : null);
       }
     }
-    loadUnread();
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        window.location.href = "/login/faculty";
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [pathname]);
 
   const navItems = [

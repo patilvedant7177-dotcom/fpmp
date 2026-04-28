@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
   RotateCcw,
-  X as CloseIcon,
   Check,
   User,
   BookOpen,
@@ -322,47 +321,6 @@ export default function ProfileApprovalPage() {
     }
   };
 
-  const handleReject = async () => {
-    if (!profile?.id) return;
-    if (!window.confirm("Are you sure you want to reject this profile?")) return;
-    setBusy(true);
-    try {
-      // Attempt 1: Update both status columns
-      const { error: uErr } = await supabase
-        .from("faculty_profiles")
-        .update({ status: "draft", profile_status: "draft" } as never)
-        .eq("id", profile.id);
-      
-      if (uErr) {
-        console.warn("Reject update failed (profile_status might be missing):", uErr);
-        // Attempt 2: Minimal update
-        const { error: u2 } = await supabase
-          .from("faculty_profiles")
-          .update({ status: "draft" })
-          .eq("id", profile.id);
-        if (u2) throw u2;
-      }
-
-      try {
-        await supabase.from("audit_log").insert({
-          faculty_id: profile.id,
-          actor: "admin",
-          action: "reject",
-          detail: "Profile rejected and returned to draft",
-        });
-      } catch (ae) {
-        console.warn("Audit log failed:", ae);
-      }
-
-      router.push("/admin/faculty");
-    } catch (e: unknown) {
-      console.error("Reject flow failed:", e);
-      const msg = e instanceof Error ? e.message : (e as any)?.message || "Reject failed";
-      alert(`Reject Failed: ${msg}`);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const handleRevise = () => {
     setRevisionNote(adminNotes);
@@ -419,14 +377,6 @@ export default function ProfileApprovalPage() {
             className="flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-100 px-4 py-2 font-headline text-[13px] font-medium text-amber-900 shadow-sm transition-colors hover:bg-amber-200 disabled:opacity-50"
           >
             <RotateCcw size={14} /> Request Revision
-          </button>
-          <button
-            type="button"
-            onClick={handleReject}
-            disabled={busy}
-            className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-100 px-4 py-2 font-headline text-[13px] font-medium text-red-700 shadow-sm transition-colors hover:bg-red-200 disabled:opacity-50"
-          >
-            <CloseIcon size={14} /> Reject
           </button>
           <button
             type="button"

@@ -46,11 +46,23 @@ export default function AdminAuditLogPage() {
 
   useEffect(() => {
     async function fetchAuditLog() {
-      const { data } = await supabase
+      // Check for session first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn("No active session found for audit log fetch");
+        return;
+      }
+
+      const { data, error } = await supabase
         .from("audit_log")
         .select("*, faculty_profiles(name)")
         .order("created_at", { ascending: false })
         .limit(200);
+
+      if (error) {
+        console.error("Error fetching audit logs:", error);
+        return;
+      }
 
       if (data) {
         setLogs(data as any);
@@ -182,13 +194,13 @@ export default function AdminAuditLogPage() {
           {logs.length} Total Actions
         </span>
         <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-blue-900">
-          {logs.filter(l => l.action === "submit").length} Submissions
+          {logs.filter(l => l.action?.toLowerCase() === "submit").length} Submissions
         </span>
         <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-green-900">
-          {logs.filter(l => l.action === "approve").length} Approvals
+          {logs.filter(l => l.action?.toLowerCase() === "approve").length} Approvals
         </span>
         <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 font-headline text-[12px] font-semibold tracking-wide text-red-700">
-          {logs.filter(l => l.action === "revision").length} Revisions Sent
+          {logs.filter(l => l.action?.toLowerCase() === "revision").length} Revisions Sent
         </span>
       </div>
 
@@ -346,8 +358,8 @@ export default function AdminAuditLogPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-[14px] py-[11px] align-middle font-body text-[13px] text-slate-900">
-                        {log.detail || `${actionTypeCap} performed`}
+                      <td className="px-[14px] py-[11px] align-middle font-body text-[13px] font-medium text-slate-700">
+                        {actionTypeCap}
                       </td>
                       <td className="px-[14px] py-[11px] align-middle">
                         <span

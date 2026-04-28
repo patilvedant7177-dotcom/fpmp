@@ -11,17 +11,49 @@ const CAMPUS_IMAGE_SRC =
 
 export default function HomePage() {
   const [counts, setCounts] = useState({ faculty: 0, departments: 0 });
+  const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchCounts() {
+    async function fetchData() {
+      // Fetch counts
       const { data: profiles } = await supabase.from('faculty_profiles').select('department');
       if (profiles) {
         const totalFaculty = profiles.length;
         const uniqueDepts = new Set(profiles.map(p => p.department).filter(Boolean)).size;
         setCounts({ faculty: totalFaculty, departments: uniqueDepts });
       }
+
+      // Fetch user - use getSession for faster UI update
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        setRole(session.user.user_metadata?.role || 'faculty');
+      } else {
+        // Fallback check
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
+          setRole(user.user_metadata?.role || 'faculty');
+        }
+      }
     }
-    fetchCounts();
+    fetchData();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setUser(session.user);
+        setRole(session.user.user_metadata?.role || 'faculty');
+      } else {
+        setUser(null);
+        setRole(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -157,10 +189,10 @@ export default function HomePage() {
                     for university faculty.
                   </p>
                   <Link
-                    href="/login/faculty"
+                    href={user ? "/faculty/dashboard" : "/login/faculty"}
                     className="flex items-center gap-2 text-sm font-bold text-primary transition-all group hover:opacity-80"
                   >
-                    <span>Sign In</span>
+                    <span>{user ? "Go to Dashboard" : "Sign In"}</span>
                     <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
                       trending_flat
                     </span>
@@ -185,10 +217,10 @@ export default function HomePage() {
                     reports for accreditation.
                   </p>
                   <Link
-                    href="/login/admin"
+                    href={user && role === 'admin' ? "/admin/dashboard" : "/login/admin"}
                     className="flex items-center gap-2 text-sm font-bold text-white transition-all group hover:opacity-80"
                   >
-                    <span>Sign In</span>
+                    <span>{user && role === 'admin' ? "Go to Dashboard" : "Sign In"}</span>
                     <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
                       trending_flat
                     </span>
