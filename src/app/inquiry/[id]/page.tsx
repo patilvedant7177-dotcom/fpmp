@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PublicNavbar from "@/components/shared/PublicNavbar";
 import PublicFooter from "@/components/shared/PublicFooter";
+import DownloadReceipt from "@/components/inquiry/DownloadReceipt";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -21,16 +22,18 @@ export default async function InquiryStatusPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = createSupabaseAdminClient();
 
-  // Fetch the main inquiry
+  // Fetch the main inquiry and join with faculty_profiles to get faculty name
   const { data: mainMsg } = await supabase
     .from('messages')
-    .select('*')
+    .select('*, faculty_profiles(name)')
     .eq('id', id)
     .single();
 
   if (!mainMsg) {
     notFound();
   }
+
+  const facultyName = (mainMsg as any).faculty_profiles?.name || "Faculty Member";
 
   // Fetch replies (linked by THREAD_ID in the body)
   const { data: replies } = await supabase
@@ -39,11 +42,15 @@ export default async function InquiryStatusPage({ params }: PageProps) {
     .like('body', `%[THREAD_ID: ${id}]%`)
     .order('sent_at', { ascending: true });
 
+  const senderEmail = mainMsg.body.match(/Sender email: (.*)/)?.[1] || "";
+  const senderName = mainMsg.body.match(/^From: (.*)\n\n/)?.[1] || "You";
+  const messageContent = mainMsg.body.replace(/^From: (.*)\n\n/, "").replace(/Sender email: (.*)/, "").trim();
+
   const conversation = [
     {
       id: mainMsg.id,
-      sender: mainMsg.body.match(/^From: (.*)\n\n/)?.[1] || "You",
-      body: mainMsg.body.replace(/^From: (.*)\n\n/, "").replace(/Sender email: (.*)/, "").trim(),
+      sender: senderName,
+      body: messageContent,
       date: new Date(mainMsg.sent_at).toLocaleString(undefined, { 
         month: 'short', 
         day: 'numeric', 
@@ -74,11 +81,11 @@ export default async function InquiryStatusPage({ params }: PageProps) {
       <PublicNavbar />
       
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 pb-20 pt-32">
-        <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <Link 
               href="/directory" 
-              className="group mb-4 inline-flex items-center gap-2 text-sm font-bold text-outline transition-colors hover:text-primary"
+              className="group mb-4 inline-flex items-center gap-2 text-sm font-bold text-outline transition-colors hover:text-primary print:hidden"
             >
               <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
               Back to Directory
@@ -91,16 +98,27 @@ export default async function InquiryStatusPage({ params }: PageProps) {
             </p>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 border border-primary/20">
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 border border-primary/20 print:hidden">
               <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
               <span className="font-label text-[11px] font-black uppercase tracking-widest text-primary">
                 Live Tracking
               </span>
             </div>
-            <span className="font-mono text-[11px] text-outline bg-surface px-2 py-1 rounded border border-outline-variant/30">
-              ID: {id.substring(0, 8)}...
-            </span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="font-mono text-[11px] text-outline bg-surface px-2 py-1 rounded border border-outline-variant/30">
+                ID: {id}
+              </span>
+              <DownloadReceipt 
+                trackId={id}
+                facultyName={facultyName}
+                senderName={senderName}
+                senderEmail={senderEmail}
+                subject={mainMsg.subject}
+                message={messageContent}
+                date={new Date(mainMsg.sent_at).toLocaleString()}
+              />
+            </div>
           </div>
         </div>
 

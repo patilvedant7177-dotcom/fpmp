@@ -13,6 +13,7 @@ import {
   Download,
   X,
   Search,
+  Trash2,
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/lib/supabase";
@@ -226,6 +227,21 @@ export default function AdminFacultyPage() {
     } else {
       setSortColumn(col);
       setSortDir("asc");
+    }
+  };
+
+  const handleDeleteFaculty = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the profile for ${name}? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase.from('faculty_profiles').delete().eq('id', id);
+      if (error) throw error;
+      
+      setFacultyData(prev => prev.filter(f => f.id !== id));
+      alert("Profile deleted successfully.");
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Failed to delete profile.");
     }
   };
 
@@ -658,6 +674,13 @@ export default function AdminFacultyPage() {
                               View
                             </Link>
                           )}
+                          <button 
+                            onClick={() => handleDeleteFaculty(f.id, f.name)}
+                            className="flex items-center justify-center rounded-md border border-red-200 px-1.5 py-1 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete Profile"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                           <button className="flex items-center justify-center rounded-md border border-slate-300 px-1.5 py-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900">
                             <MoreHorizontal size={16} />
                           </button>

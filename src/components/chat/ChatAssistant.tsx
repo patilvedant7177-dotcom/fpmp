@@ -88,7 +88,7 @@ export default function ChatAssistant() {
     <div 
       className={cn(
         "fixed right-6 z-50 flex flex-col items-end transition-all duration-300",
-        pathname.includes("/faculty/editor") ? "bottom-24" : "bottom-6"
+        pathname.includes("/faculty/editor") ? "bottom-24" : "bottom-20"
       )}
     >
       {/* Chat Window */}
