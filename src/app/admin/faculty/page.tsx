@@ -231,17 +231,26 @@ export default function AdminFacultyPage() {
   };
 
   const handleDeleteFaculty = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the profile for ${name}? This action cannot be undone.`)) return;
+    if (!confirm(`Are you sure you want to delete the profile for ${name}? This will also delete their login account and all associated data. This action cannot be undone.`)) return;
     
     try {
-      const { error } = await supabase.from('faculty_profiles').delete().eq('id', id);
-      if (error) throw error;
+      const res = await fetch('/api/admin/delete-faculty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+
+      const data = await res.json();
       
-      setFacultyData(prev => prev.filter(f => f.id !== id));
-      alert("Profile deleted successfully.");
-    } catch (err) {
+      if (data.success) {
+        setFacultyData(prev => prev.filter(f => f.id !== id));
+        alert("Profile and associated account deleted successfully.");
+      } else {
+        throw new Error(data.error || "Failed to delete profile");
+      }
+    } catch (err: any) {
       console.error("Delete error:", err);
-      alert("Failed to delete profile.");
+      alert(err.message || "Failed to delete profile.");
     }
   };
 
