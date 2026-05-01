@@ -32,10 +32,10 @@ interface Message {
   date: string;
   sentAt: string;
   read: boolean;
-  type: "Direct" | "Broadcast" | "External";
+  type: "Direct" | "Broadcast" | "External" | "Sent";
 }
 
-type Tab = "All" | "Direct" | "Broadcast" | "External";
+type Tab = "All" | "Direct" | "Broadcast" | "External" | "Sent";
 
 export default function FacultyMessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -55,85 +55,98 @@ export default function FacultyMessagesPage() {
   });
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: profile } = await supabase.from('faculty_profiles').select('id, name').eq('user_id', user.id).maybeSingle();
+      if (!profile) return;
+
+      const profileId = profile.id;
+      
+      // Fetch Messages
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`to_faculty.eq.${profileId},to_faculty.is.null`)
+        .order('sent_at', { ascending: false });
+
+      // Fetch Faculty List (excluding self)
+      const { data: facs } = await supabase
+        .from('faculty_profiles')
+        .select('id, name')
+        .neq('id', profileId)
+        .order('name');
+      
+      if (facs) setFacultyList(facs);
+
+      if (msgs) {
+        const readMsgs = JSON.parse(localStorage.getItem('fpmp_read_messages') || '[]');
         
-        const { data: profile } = await supabase.from('faculty_profiles').select('id, name').eq('user_id', user.id).maybeSingle();
-        if (!profile) return;
+        const mapped = msgs.map(msg => {
+          let sender = msg.from_admin ? "FPMP Administration" : "System";
+          let type: "Direct" | "Broadcast" | "External" | "Sent" = msg.to_faculty === null ? "Broadcast" : "Direct";
+          let avatar = msg.from_admin ? "AD" : "SY";
 
-        const profileId = profile.id;
-        
-        // Fetch Messages
-        const { data: msgs } = await supabase
-          .from('messages')
-          .select('*')
-          .or(`to_faculty.eq.${profileId},to_faculty.is.null`)
-          .order('sent_at', { ascending: false });
+          // Check if this was sent BY the faculty (stored with their ID to track associations)
+          const isSentByMe = !msg.from_admin && (
+            msg.body?.includes(`[FACULTY_SENT] From: ${profile.name}`) || 
+            msg.body?.includes(`[FACULTY_SENT] To:`)
+          );
 
-        // Fetch Faculty List (excluding self)
-        const { data: facs } = await supabase
-          .from('faculty_profiles')
-          .select('id, name')
-          .neq('id', profileId)
-          .order('name');
-        
-        if (facs) setFacultyList(facs);
-
-        if (msgs) {
-          const readMsgs = JSON.parse(localStorage.getItem('fpmp_read_messages') || '[]');
-          
-          const mapped = msgs.filter(msg => {
-            // Filter out messages sent BY the faculty to admin (stored as to_faculty = self)
-            // But KEEP messages sent BY other faculty to this faculty (peer messaging)
-            return !(msg.from_admin === false && msg.body?.includes(`[FACULTY_SENT] From: ${profile.name}`));
-          }).map(msg => {
-            let sender = msg.from_admin ? "FPMP Administration" : "System";
-            let type: "Direct" | "Broadcast" | "External" = msg.to_faculty === null ? "Broadcast" : "Direct";
-            let avatar = msg.from_admin ? "AD" : "SY";
-
-            if (!msg.from_admin && msg.to_faculty) {
-              const facMatch = msg.body?.match(/^\[FACULTY_SENT\] From: (.*)\n\n/);
-              const extMatch = msg.body?.match(/^From: (.*)\n\n/);
-              
-              if (facMatch) {
-                sender = facMatch[1];
-                type = "Direct";
-                avatar = sender.substring(0, 2).toUpperCase();
-              } else if (extMatch) {
-                type = "External";
-                avatar = "EX";
-                sender = extMatch[1];
-                avatar = sender.substring(0, 2).toUpperCase();
-              } else {
-                sender = "External Inquiry";
-              }
+          if (isSentByMe) {
+            type = "Sent";
+            avatar = "ME";
+            
+            const toMatch = msg.body?.match(/^\[FACULTY_SENT\] To: (.*)\n\n/);
+            if (toMatch) {
+              sender = `To: ${toMatch[1]}`;
+            } else {
+              sender = "You (Sent)";
             }
+          } else if (!msg.from_admin && msg.to_faculty) {
+            const facMatch = msg.body?.match(/^\[FACULTY_SENT\] From: (.*)\n\n/);
+            const extMatch = msg.body?.match(/^From: (.*)\n\n/);
+            
+            if (facMatch) {
+              sender = facMatch[1];
+              type = "Direct";
+              avatar = sender.substring(0, 2).toUpperCase();
+            } else if (extMatch) {
+              type = "External";
+              avatar = "EX";
+              sender = extMatch[1];
+              avatar = sender.substring(0, 2).toUpperCase();
+            } else {
+              sender = "External Inquiry";
+            }
+          }
 
-            return {
-              id: msg.id,
-              sender,
-              avatar,
-              subject: msg.subject,
-              snippet: (msg.body || "").replace(/^\[FACULTY_SENT\] From: (.*)\n\n/, "").replace(/^From: (.*)\n\n/, "").substring(0, 100) + "...",
-              body: msg.body.replace(/^\[FACULTY_SENT\] From: (.*)\n\n/, "").replace(/^From: (.*)\n\n/, ""),
-              date: new Date(msg.sent_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-              sentAt: msg.sent_at,
-              read: readMsgs.includes(msg.id),
-              type
-            };
-          });
-          setMessages(mapped);
-        }
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
-      } finally {
-        setLoading(false);
+          return {
+            id: msg.id,
+            sender,
+            avatar,
+            subject: msg.subject,
+            snippet: (msg.body || "").replace(/^\[FACULTY_SENT\] From: (.*)\n\n/, "").replace(/^\[FACULTY_SENT\] To: (.*)\n\n/, "").replace(/^From: (.*)\n\n/, "").substring(0, 100) + "...",
+            body: msg.body.replace(/^\[FACULTY_SENT\] From: (.*)\n\n/, "").replace(/^\[FACULTY_SENT\] To: (.*)\n\n/, "").replace(/^From: (.*)\n\n/, ""),
+            date: new Date(msg.sent_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            sentAt: msg.sent_at,
+            read: isSentByMe ? true : readMsgs.includes(msg.id),
+            type
+          };
+        });
+        setMessages(mapped);
       }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -175,7 +188,7 @@ export default function FacultyMessagesPage() {
 
       if (composeData.isPublicReply) {
         // Send email to public user
-        await fetch("/api/send-message", {
+        const response = await fetch("/api/send-message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -184,9 +197,26 @@ export default function FacultyMessagesPage() {
             fromName: profile.name,
             subject: composeData.subject,
             body: composeData.body,
-            type: "contact", // Use contact type to send email
+            type: "contact", 
           }),
         });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Failed to send email");
+        }
+
+        // Also save a record in the database so it appears in the Sent messages
+        // We include a thread tag so the public inquiry page can find all related messages
+        const threadId = composeData.body.match(/\[THREAD_ID: (.*)\]/)?.[1] || "new";
+
+        await supabase.from('messages').insert({
+          from_admin: false,
+          to_faculty: profile.id,
+          subject: composeData.subject,
+          body: `[FACULTY_SENT] To: ${composeData.publicEmail}\n\n${composeData.body}${threadId !== "new" ? "" : `\n\n[THREAD_ID: ${threadId}]`}`,
+        });
+
         alert(`Reply sent to ${composeData.publicEmail}`);
       } else {
         // Internal message
@@ -197,18 +227,20 @@ export default function FacultyMessagesPage() {
           from_admin: false,
           to_faculty: targetId,
           subject: composeData.subject,
-          body: `[FACULTY_SENT] From: ${profile.name}\n\n${composeData.body}`,
+          body: `[FACULTY_SENT] From: ${profile.name}\n\n${composeData.body}\n\n[THREAD_ID: ${targetId}]`,
         });
 
-        if (!error) {
-          alert(isToAdmin ? "Message sent to administration." : "Message sent to faculty member.");
-        }
+        if (error) throw error;
+        alert(isToAdmin ? "Message sent to administration." : "Message sent to faculty member.");
       }
 
       setIsComposeOpen(false);
       setComposeData({ recipientId: "admin", subject: "", body: "", publicEmail: "", isPublicReply: false });
-    } catch (err) {
+      // Refresh the list to show the new message
+      fetchData();
+    } catch (err: any) {
       console.error(err);
+      alert(`Error: ${err.message || "Failed to send message"}`);
     } finally {
       setSending(false);
     }
@@ -233,7 +265,7 @@ export default function FacultyMessagesPage() {
     setComposeData({
       recipientId: "external",
       subject: `Re: ${msg.subject}`,
-      body: `\n\n--- Original Inquiry ---\n\n${msg.body}`,
+      body: `\n\n--- Original Inquiry ---\n\n${msg.body}\n\n[THREAD_ID: ${msg.id}]`,
       publicEmail: email,
       isPublicReply: true
     });
@@ -283,7 +315,7 @@ export default function FacultyMessagesPage() {
                   setComposeData({ recipientId: "admin", subject: "", body: "", publicEmail: "", isPublicReply: false });
                   setIsComposeOpen(true);
                 }}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary font-headline text-[13px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary font-headline text-[15px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
               >
                 <Plus size={18} />
                 Compose
@@ -297,7 +329,7 @@ export default function FacultyMessagesPage() {
                   localStorage.setItem('fpmp_read_messages', JSON.stringify(newRead));
                   setMessages(msgs => msgs.map(m => ({ ...m, read: true })));
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/50 bg-white font-headline text-[12px] font-bold text-outline hover:text-primary hover:border-primary transition-all active:scale-95 shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant/50 bg-white font-headline text-[15px] font-bold text-outline hover:text-primary hover:border-primary transition-all active:scale-95 shadow-sm"
               >
                 <CheckCircle2 size={16} />
                 Mark all
@@ -318,7 +350,7 @@ export default function FacultyMessagesPage() {
 
           {/* TABS */}
           <div className="flex items-center gap-2 mt-8 border-b border-outline-variant/30">
-            {(["All", "Direct", "Broadcast", "External"] as Tab[]).map((tab) => {
+            {(["All", "Direct", "Broadcast", "External", "Sent"] as Tab[]).map((tab) => {
               const count = tab === "All" ? messages.length : messages.filter(m => m.type === tab).length;
               const unread = tab === "All" ? unreadCount : messages.filter(m => m.type === tab && !m.read).length;
               
@@ -326,7 +358,7 @@ export default function FacultyMessagesPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`relative px-4 py-3 font-headline text-[13px] font-bold transition-all hover:text-primary ${
+                  className={`relative px-4 py-3 font-headline text-[15px] font-bold transition-all hover:text-primary ${
                     activeTab === tab ? "text-primary" : "text-outline hover:bg-surface-container-low/50"
                   }`}
                 >
@@ -387,6 +419,7 @@ export default function FacultyMessagesPage() {
                       <div className={`h-11 w-11 rounded-xl shrink-0 flex items-center justify-center font-headline text-[14px] font-extrabold shadow-sm ${
                         msg.type === 'External' ? 'bg-tertiary-container text-on-tertiary-container' : 
                         msg.type === 'Broadcast' ? 'bg-secondary-container text-on-secondary-container' :
+                        msg.type === 'Sent' ? 'bg-outline-variant text-outline' :
                         'bg-primary-container text-on-primary-container'
                       }`}>
                         {msg.avatar}
@@ -417,6 +450,7 @@ export default function FacultyMessagesPage() {
                           <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${
                             msg.type === 'External' ? 'bg-tertiary/10 text-tertiary' : 
                             msg.type === 'Broadcast' ? 'bg-secondary/10 text-secondary' :
+                            msg.type === 'Sent' ? 'bg-outline-variant/20 text-outline' :
                             'bg-primary/10 text-primary'
                           }`}>
                             {msg.type}
@@ -448,7 +482,7 @@ export default function FacultyMessagesPage() {
                           {msg.type === "External" ? (
                             <button 
                               onClick={() => handlePublicReply(msg)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-headline text-[14px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
+                              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-headline text-[15px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
                             >
                               <Reply size={18} />
                               Reply via Portal
@@ -456,7 +490,7 @@ export default function FacultyMessagesPage() {
                           ) : (
                             <button 
                               onClick={() => handleReply(msg)}
-                              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-headline text-[14px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
+                              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-headline text-[15px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all"
                             >
                               <Reply size={18} />
                               Reply In-App
@@ -464,7 +498,7 @@ export default function FacultyMessagesPage() {
                           )}
                           <button 
                             onClick={(e) => handleDelete(e, msg.id)}
-                            className="inline-flex items-center gap-2 rounded-xl bg-surface-container-highest px-6 py-2.5 font-headline text-[14px] font-bold text-on-surface hover:bg-error/10 hover:text-error transition-all"
+                            className="inline-flex items-center gap-2 rounded-xl bg-surface-container-highest px-6 py-2.5 font-headline text-[15px] font-bold text-on-surface hover:bg-error/10 hover:text-error transition-all"
                           >
                             <Trash2 size={18} />
                             Move to Trash
@@ -597,14 +631,14 @@ export default function FacultyMessagesPage() {
                 <button 
                   type="button"
                   onClick={() => setIsComposeOpen(false)}
-                  className="px-6 py-2.5 rounded-xl font-headline text-[14px] font-bold text-outline hover:bg-surface-container-high transition-all"
+                  className="px-6 py-2.5 rounded-xl font-headline text-[15px] font-bold text-outline hover:bg-surface-container-high transition-all"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
                   disabled={sending}
-                  className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-primary font-headline text-[14px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all"
+                  className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-primary font-headline text-[15px] font-bold text-on-primary shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all"
                 >
                   {sending ? "Sending..." : (
                     <>

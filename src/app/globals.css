@@ -9,9 +9,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-hanken);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-bricolage);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -96,9 +96,9 @@
   --color-surface-container-high: #e7e8e9;
   --color-secondary-fixed: #cbe7f5;
   --color-primary: #00346f;
-  --font-headline: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-public), ui-sans-serif, system-ui, sans-serif;
-  --font-label: var(--font-public), ui-sans-serif, system-ui, sans-serif;
+  --font-headline: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-label: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -175,10 +175,85 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--background);
+    color: var(--foreground);
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  }
+  
+  button:not([data-no-shine]),
+  .hero-gradient,
+  .shine-button {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  button:not([data-no-shine])::before,
+  .hero-gradient::before,
+  .shine-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(
+      45deg,
+      transparent 15%,
+      rgba(255, 255, 255, 0.1) 30%,
+      rgba(255, 255, 255, 0.6) 50%,
+      rgba(255, 255, 255, 0.1) 70%,
+      transparent 85%
+    );
+    background-size: 200% 100%;
+    background-position: 150% 0;
+    background-repeat: no-repeat;
+    transition: background-position 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  button:not([data-no-shine]):hover::before,
+  .hero-gradient:hover::before,
+  .shine-button:hover::before {
+    background-position: -150% 0;
+  }
+
+  button:not([data-no-shine]):hover,
+  .hero-gradient:hover,
+  .shine-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.2);
+  }
+
+  button:not([data-no-shine]):active,
+  .hero-gradient:active,
+  .shine-button:active {
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Mobile-first text utilities */
+  .text-fluid-h1 {
+    font-size: clamp(2rem, 8vw, 3.5rem);
+  }
+  .text-fluid-h2 {
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
+  }
+  .text-fluid-body {
+    font-size: clamp(0.875rem, 2vw, 1.125rem);
   }
 }
 
@@ -194,6 +269,13 @@
 .glass-nav {
   background: rgba(248, 249, 250, 0.8);
   backdrop-filter: blur(20px);
+}
+
+.hero-text-gradient {
+  background: linear-gradient(135deg, #00346f 0%, #004a99 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 @keyframes revealUp {
@@ -277,7 +359,6 @@
     0 25px 50px -12px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(0, 74, 153, 0.3);
 }
-
 @media print {
   .no-print, 
   nav, 
@@ -286,8 +367,14 @@
   .ContactForm,
   #contact-form,
   aside,
-  .print-hidden {
+  .print-hidden,
+  .h-px {
     display: none !important;
+  }
+
+  @page {
+    margin: 0.3in;
+    size: A4;
   }
 
   body {
@@ -295,30 +382,82 @@
     color: black !important;
     padding: 0 !important;
     margin: 0 !important;
+    font-size: 10.5pt !important;
+    line-height: 1.25 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   main {
     max-width: 100% !important;
-    padding: 0.2in !important;
+    padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
     display: block !important;
+    padding-top: 0 !important;
   }
 
   .max-w-7xl {
     max-width: 100% !important;
   }
 
-  /* Optimize grid for compactness in print */
-  .grid {
-    display: grid !important;
-    gap: 10px !important;
+  /* Compact Hero Banner for Print */
+  .mb-10.flex-col.p-8, .p-8 {
+    padding: 1rem !important;
+    margin-bottom: 0.75rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 1rem !important;
   }
 
-  .grid-cols-2 {
+  .h-\[180px\].w-\[180px\], .h-\[220px\].w-\[220px\] {
+    height: 100px !important;
+    width: 100px !important;
+    min-width: 100px !important;
+  }
+
+  h1.text-\[32px\] {
+    font-size: 18pt !important;
+    margin-bottom: 0.1rem !important;
+  }
+
+  /* Shrink Section Headers */
+  .mb-4.flex.items-center.justify-between {
+    margin-bottom: 0.25rem !important;
+    padding-bottom: 0.1rem !important;
+    border-bottom-width: 0.5px !important;
+  }
+
+  h3.font-label.text-\[11px\] {
+    font-size: 8.5pt !important;
+  }
+
+  /* Optimize grid for maximum compactness */
+  .grid {
+    display: grid !important;
+    gap: 8px !important;
+  }
+
+  .grid-cols-1, .grid-cols-2, .grid-cols-3, .grid-cols-4, 
+  .lg\:grid-cols-2, .lg\:grid-cols-3, .md\:grid-cols-2, .gap-10, .gap-12, .gap-8 {
     grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Special case for KPI cards */
+  .lg\:grid-cols-4, .grid-cols-2.gap-4 {
+    grid-template-columns: 1fr 1fr 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Strategic Projects and Publications - minimize padding */
+  .p-8, .p-7, .p-6, .p-5 {
+    padding: 0.5rem !important;
+  }
+
+  h2, h3, h4 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   section {
@@ -326,17 +465,14 @@
     page-break-inside: auto !important;
     overflow: visible !important;
     display: block !important;
+    margin-bottom: 0.5rem !important;
   }
 
-  .rounded-2xl, .rounded-xl, .rounded-3xl, .group {
+  .rounded-2xl, .rounded-xl, .rounded-3xl, .group, .relative {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 4px !important;
     overflow: visible !important;
-  }
-
-  .grid-cols-4, .lg\:grid-cols-2, .md\:grid-cols-2, .lg\:grid-cols-3 {
-    grid-template-columns: 1fr 1fr !important;
   }
 
   main, .flex-1 {
@@ -345,42 +481,46 @@
     overflow: visible !important;
   }
 
-  /* Fix for Recharts in print */
+  /* Fix for Recharts - More compact */
   .recharts-responsive-container {
     width: 100% !important;
-    height: 240px !important;
-    min-height: 240px !important;
+    height: 140px !important;
+    min-height: 140px !important;
     display: block !important;
   }
 
-  .recharts-responsive-container svg {
-    width: 100% !important;
-    height: 100% !important;
-    overflow: visible !important;
+  .h-\[240px\], .h-\[250px\], .h-\[300px\], .h-\[280px\] {
+    height: 140px !important;
+    min-height: 140px !important;
   }
 
-  .recharts-surface {
-    overflow: visible !important;
+  .h-\[280px\].w-full {
+    height: 160px !important;
   }
 
-  .h-\[250px\], .h-\[300px\], .h-\[180px\], .h-\[220px\], .h-\[200px\], .h-\[240px\], .h-\[280px\] {
-    height: auto !important;
-    min-height: 200px !important;
+  /* Space-y utilities */
+  .space-y-12, .space-y-16, .space-y-10, .space-y-6 {
+    margin-top: 0.25rem !important;
+  }
+  
+  .space-y-12 > :not([hidden]) ~ :not([hidden]),
+  .space-y-16 > :not([hidden]) ~ :not([hidden]),
+  .space-y-10 > :not([hidden]) ~ :not([hidden]),
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.25rem !important;
   }
 
-  /* Specific fix for impact cards grid */
-  .grid-cols-2.gap-4 {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr)) !important;
-    height: auto !important;
+  .py-4, .py-5, .py-8, .py-12, .pt-24, .pb-12 {
+    padding-top: 0.2rem !important;
+    padding-bottom: 0.2rem !important;
   }
 
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-    overflow: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  .mb-10, .mb-12, .mb-16 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .mt-4, .mt-6, .mt-8, .mt-10 {
+    margin-top: 0.25rem !important;
   }
 
   /* Hide messy URLs */
@@ -401,8 +541,20 @@
   .bg-blue-50\/50, 
   .bg-green-50\/50, 
   .bg-orange-50\/50, 
-  .bg-purple-50\/50 {
-    background-color: inherit !important;
-    border: 1px solid #eee !important;
+  .bg-purple-50\/50,
+  .bg-white {
+    background-color: white !important;
+    border: 0.5px solid #e5e7eb !important;
+  }
+
+  .text-primary {
+    color: #00346f !important;
+  }
+
+  .no-print {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 }

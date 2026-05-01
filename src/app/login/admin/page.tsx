@@ -135,12 +135,7 @@ export default function AdminLogin() {
               <p className="text-[12px] text-red-500 font-medium">{error}</p>
             )}
 
-            <div className="flex items-center justify-between text-[12px]">
-              <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300">
-                <input type="checkbox" className="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500" />
-                Remember this device
-              </label>
-            </div>
+
 
             <button 
               type="submit" 
@@ -163,11 +158,7 @@ export default function AdminLogin() {
         </div>
         
         {/* FOOTER */}
-        <div className="mt-8 text-center text-[11px] font-medium text-slate-500 reveal reveal-3">
-          <p className="flex items-center justify-center gap-1.5 opacity-60">
-            <Lock size={12} /> Powered by AES-256 Encryption
-          </p>
-        </div>
+
 
       </div>
     </div>

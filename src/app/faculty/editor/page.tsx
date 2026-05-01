@@ -33,7 +33,7 @@ export default function FacultyEditorPage() {
   const [formData, setFormData] = useState<any>({
     name: "",
     designation: "",
-    department: "Electronics & CS",
+    department: "Electronics & Computer Science",
     experience: "",
     email: "",
     phone: "",
@@ -84,7 +84,7 @@ export default function FacultyEditorPage() {
         const base = {
           name: profileData.name || "",
           designation: profileData.designation || "",
-          department: profileData.department || "Electronics & CS",
+          department: profileData.department || "Electronics & Computer Science",
           experience: profileData.experience || "",
           email: profileData.email || user.email || "",
           phone: profileData.phone || "",
@@ -143,7 +143,11 @@ export default function FacultyEditorPage() {
             // Merge: extracted value takes priority over empty Supabase value
             if (prefill.name) base.name = prefill.name;
             if (prefill.designation) base.designation = prefill.designation;
-            if (prefill.department) base.department = prefill.department;
+            if (prefill.department) {
+              if (prefill.department === "Electronics & CS") base.department = "Electronics & Computer Science";
+              else if (prefill.department === "Mechanical") base.department = "Mechanical Engineering";
+              else base.department = prefill.department;
+            }
             if (prefill.experience) base.experience = prefill.experience;
             if (prefill.email) base.email = prefill.email;
             if (prefill.phone) base.phone = prefill.phone;
@@ -633,7 +637,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "Basic Info" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">Basic Information</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">Basic Information</h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
@@ -661,11 +665,10 @@ export default function FacultyEditorPage() {
                         onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                         className="w-full border border-outline-variant rounded-lg bg-surface px-3 py-2 font-body text-[13px] text-primary focus:border-primary outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                       >
-                        <option>Electronics & CS</option>
-                        <option>Information Technology</option>
+                        <option>Electronics & Computer Science</option>
+                        <option>Computer Science & Engineering</option>
+                        <option>Mechanical Engineering</option>
                         <option>Computer Engineering</option>
-                        <option>Mechanical</option>
-                        <option>Humanities & Sciences</option>
                       </select>
                     </div>
                     <div>
@@ -698,7 +701,7 @@ export default function FacultyEditorPage() {
                   </div>
 
                   <div className="mt-8 border-t border-outline-variant/30 pt-6">
-                    <h3 className="font-headline text-[16px] font-bold text-primary mb-4">Social & Professional Links</h3>
+                    <h3 className="font-headline text-[20px] font-extrabold text-primary mb-4">Social & Professional Links</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <label className="font-label text-[11px] font-bold uppercase tracking-wider text-outline block mb-1.5">LinkedIn Profile URL</label>
@@ -757,7 +760,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "About" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">About / Overview</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">About / Overview</h2>
                   <div>
                     <label className="font-label text-[11px] font-bold uppercase tracking-wider text-outline block mb-1.5">Professional Biography</label>
                     <textarea
@@ -773,7 +776,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "Education" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">Education Timeline</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">Education Timeline</h2>
                   <div className="flex flex-col gap-4">
                     {formData.education.map((item: any, idx: number) => (
                       <div key={idx} className="border border-outline-variant rounded-lg bg-surface p-4 relative group">
@@ -835,7 +838,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "Projects" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">Research & Development Projects</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">Research & Development Projects</h2>
                   <div className="flex flex-col gap-4">
                     {formData.projects.map((item: any, idx: number) => (
                       <div key={idx} className="border border-outline-variant rounded-lg bg-surface p-4 relative group">
@@ -899,7 +902,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "Publications" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">Academic Publications</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">Academic Publications</h2>
                   <div className="flex flex-col gap-4">
                     {formData.publications.map((item: any, idx: number) => (
                       <div key={idx} className="border border-outline-variant rounded-lg bg-surface p-4 relative group">
@@ -953,7 +956,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "Awards" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">Awards & Recognition</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">Awards & Recognition</h2>
                   <div className="flex flex-col gap-4">
                     {formData.awards.map((item: any, idx: number) => (
                       <div key={idx} className="border border-outline-variant rounded-lg bg-surface p-4 relative group">
@@ -1007,7 +1010,7 @@ export default function FacultyEditorPage() {
 
               {activeTab === "Certifications" && (
                 <div className="flex flex-col gap-5 pb-12">
-                  <h2 className="font-headline text-[18px] font-bold text-primary mb-2">Certifications & FDPs</h2>
+                  <h2 className="font-headline text-[24px] font-extrabold text-primary mb-2">Certifications & FDPs</h2>
                   <div className="flex flex-col gap-4">
                     {formData.certifications.map((item: any, idx: number) => (
                       <div key={idx} className="border border-outline-variant rounded-lg bg-surface p-4 relative group">
@@ -1063,7 +1066,7 @@ export default function FacultyEditorPage() {
                 <div className="flex flex-col gap-5 pb-12">
                   <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h2 className="font-headline text-[18px] font-bold text-primary">Professional Activity Gallery</h2>
+                      <h2 className="font-headline text-[24px] font-extrabold text-primary">Professional Activity Gallery</h2>
                       <p className="font-body text-[13px] text-secondary">Showcase your seminars, lectures, and academic events.</p>
                     </div>
                     <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-4 py-2 font-headline text-[13px] font-bold text-on-primary transition-all hover:scale-105 shadow-md active:scale-95">
@@ -1263,7 +1266,7 @@ export default function FacultyEditorPage() {
             <button
               onClick={handleSaveTab}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant bg-surface-container font-headline text-[13px] font-medium text-secondary hover:text-primary transition-colors hover:bg-surface-container-high active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant bg-surface-container font-headline text-[15px] font-medium text-secondary hover:text-primary transition-colors hover:bg-surface-container-high active:scale-95 disabled:opacity-50"
             >
               {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Save Draft
@@ -1271,7 +1274,7 @@ export default function FacultyEditorPage() {
             <button
               onClick={handleSubmitForReview}
               disabled={isSaving}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary font-headline text-[13px] font-bold text-on-primary transition-opacity hover:opacity-90 shadow-sm active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-primary font-headline text-[15px] font-bold text-on-primary transition-opacity hover:opacity-90 shadow-sm active:scale-95 disabled:opacity-50"
             >
               <Send size={16} /> {isSaving ? "Publishing..." : "Publish to Directory"}
             </button>

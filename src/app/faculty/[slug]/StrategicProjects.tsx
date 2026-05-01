@@ -6,7 +6,7 @@ import { Rocket, Lightbulb, Briefcase, Zap, X, Globe, Calendar, User } from "luc
 
 const SectionHeaderLocal = ({ title, count }: { title: string; count?: number }) => (
   <div className="mb-4 flex items-center justify-between border-b border-outline-variant/30 pb-2">
-    <h3 className="font-label text-[11px] font-bold uppercase tracking-widest text-outline">
+    <h3 className="font-headline text-[15px] font-extrabold uppercase tracking-widest text-primary">
       {title}
     </h3>
     {count !== undefined && (

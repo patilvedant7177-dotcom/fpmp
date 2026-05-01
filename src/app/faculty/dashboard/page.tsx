@@ -199,14 +199,6 @@ export default function DashboardPage() {
 
   return (
     <FacultyLayout>
-      {/* ANNOUNCEMENT BAR */}
-      <div className="mx-6 mt-6 flex items-center gap-3 rounded-lg border border-outline-variant/30 bg-secondary-container/30 px-4 py-3">
-        <div className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-        <p className="font-body text-[13px] font-medium text-secondary">
-          Admin Notice: Please update your profile with latest publications and
-          certifications before 31st March 2026.
-        </p>
-      </div>
 
       {/* PAGE HEADER */}
       <div className="px-6 pt-6">
@@ -222,7 +214,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Profile Completion */}
         <div className="flex flex-col justify-between rounded-xl border border-outline-variant/30 border-l-[3px] border-l-primary bg-surface-container-lowest p-5 shadow-sm">
-          <div className="mb-2 font-label text-[11px] font-bold uppercase tracking-wider text-outline">
+          <div className="mb-2 font-headline text-[13px] font-extrabold uppercase tracking-wider text-outline">
             Profile Completion
           </div>
           <div className="font-headline text-[28px] font-bold text-primary">
@@ -235,7 +227,7 @@ export default function DashboardPage() {
 
         {/* Card 2: Profile Status */}
         <div className="flex flex-col justify-between rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
-          <div className="mb-2 font-label text-[11px] font-bold uppercase tracking-wider text-outline">
+          <div className="mb-2 font-headline text-[13px] font-extrabold uppercase tracking-wider text-outline">
             Profile Status
           </div>
           <div>
@@ -253,7 +245,7 @@ export default function DashboardPage() {
 
         {/* Card 3: Public Views */}
         <div className="flex flex-col justify-between rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
-          <div className="mb-2 font-label text-[11px] font-bold uppercase tracking-wider text-outline">
+          <div className="mb-2 font-headline text-[13px] font-extrabold uppercase tracking-wider text-outline">
             Public Views
           </div>
           <div className="font-headline text-[28px] font-bold text-primary">
@@ -266,7 +258,7 @@ export default function DashboardPage() {
 
         {/* Card 4: Unread Messages */}
         <div className="flex flex-col justify-between rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
-          <div className="mb-2 font-label text-[11px] font-bold uppercase tracking-wider text-outline">
+          <div className="mb-2 font-headline text-[13px] font-extrabold uppercase tracking-wider text-outline">
             Unread Messages
           </div>
           <div className="font-headline text-[28px] font-bold text-primary">
@@ -283,22 +275,22 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Research Footprint Donut */}
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm flex flex-col items-center">
-            <h3 className="font-headline text-[15px] font-bold text-primary w-full mb-6">Research Footprint</h3>
-            <div className="relative h-[160px] w-[160px] rounded-full overflow-hidden mb-6" style={{
+            <h3 className="font-headline text-[18px] font-extrabold text-primary w-full mb-6 md:text-[20px]">Research Footprint</h3>
+            <div className="relative h-[140px] w-[140px] rounded-full overflow-hidden mb-6 sm:h-[160px] sm:w-[160px]" style={{
               background: `conic-gradient(
                 #E8580A 0% ${distribution[0].percentage}%, 
                 #2563EB ${distribution[0].percentage}% ${distribution[0].percentage + distribution[1].percentage}%, 
                 #16A34A ${distribution[0].percentage + distribution[1].percentage}% 100%
               )`
             }}>
-              <div className="absolute inset-0 m-auto h-[110px] w-[110px] rounded-full bg-surface-container-lowest flex flex-col items-center justify-center shadow-inner">
-                <span className="font-headline text-[28px] font-bold text-primary leading-none">{totalItems}</span>
-                <span className="font-label text-[9px] uppercase font-bold text-outline mt-1 tracking-widest">Items</span>
+              <div className="absolute inset-0 m-auto h-[90px] w-[90px] rounded-full bg-surface-container-lowest flex flex-col items-center justify-center shadow-inner sm:h-[110px] sm:w-[110px]">
+                <span className="font-headline text-[24px] font-bold text-primary leading-none sm:text-[28px]">{totalItems}</span>
+                <span className="font-label text-[8px] uppercase font-bold text-outline mt-1 tracking-widest sm:text-[9px]">Items</span>
               </div>
             </div>
-            <div className="w-full flex flex-col gap-3">
+            <div className="w-full flex flex-col gap-2.5">
               {distribution.map((d, i) => (
-                <div key={i} className="flex items-center justify-between font-body text-[12px]">
+                <div key={i} className="flex items-center justify-between font-body text-[11px] md:text-[12px]">
                   <div className="flex items-center gap-2">
                     <div className="h-[10px] w-[10px] rounded-sm" style={{ backgroundColor: d.color }} />
                     <span className="text-secondary font-medium">{d.label}</span>
@@ -314,19 +306,19 @@ export default function DashboardPage() {
 
           {/* Bar Chart - Output */}
           <div className="lg:col-span-2 rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-sm flex flex-col">
-            <h3 className="font-headline text-[15px] font-bold text-primary mb-6">Publication Output</h3>
-            <div className="flex-1 flex items-end justify-between gap-2 md:gap-4 h-[180px] w-full border-b border-outline-variant/30 pb-3">
+            <h3 className="font-headline text-[18px] font-extrabold text-primary mb-6 md:text-[20px]">Publication Output</h3>
+            <div className="flex-1 flex items-end justify-between gap-2 h-[180px] w-full border-b border-outline-variant/30 pb-3">
               {outputByYear.length > 0 ? outputByYear.map((d, i) => {
                 const max = Math.max(...outputByYear.map(x => x.count));
                 const heightPct = (d.count / max) * 100;
                 const finalHeight = Math.max(heightPct, 5); 
                 return (
                   <div key={i} className="flex flex-col items-center justify-end h-full gap-2 group flex-1">
-                    <span className="font-headline text-[13px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">{d.count}</span>
+                    <span className="font-headline text-[12px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 sm:text-[13px]">{d.count}</span>
                     <div className="w-full max-w-[48px] bg-primary-container disabled-lighten rounded-t-lg group-hover:bg-primary transition-all duration-300 relative overflow-hidden" style={{ height: `${finalHeight}%` }}>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent mix-blend-overlay" />
                     </div>
-                    <span className="font-label text-[10px] font-bold text-outline uppercase tracking-wider">{d.year}</span>
+                    <span className="font-label text-[9px] font-bold text-outline uppercase tracking-wider sm:text-[10px]">{d.year}</span>
                   </div>
                 )
               }) : (
@@ -342,7 +334,7 @@ export default function DashboardPage() {
         {/* --- LEFT CARD: Profile Completion Details --- */}
         <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between border-b border-outline-variant/20 pb-3">
-            <h3 className="font-headline text-[15px] font-bold text-primary">
+            <h3 className="font-headline text-[20px] font-extrabold text-primary">
               Profile Completion
             </h3>
             <span className="font-headline text-[15px] font-bold text-primary">
@@ -368,7 +360,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6">
           {/* TOP: AI Smart Nudges */}
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
-            <h3 className="mb-4 flex items-center gap-2 font-headline text-[15px] font-bold text-primary">
+            <h3 className="mb-4 flex items-center gap-2 font-headline text-[20px] font-extrabold text-primary">
               <span className="material-symbols-outlined text-[18px] text-primary">
                 tips_and_updates
               </span>
@@ -413,7 +405,7 @@ export default function DashboardPage() {
           {/* BOTTOM: Recent Messages */}
           <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between border-b border-outline-variant/20 pb-3">
-              <h3 className="flex items-center gap-2 font-headline text-[15px] font-bold text-primary">
+              <h3 className="flex items-center gap-2 font-headline text-[20px] font-extrabold text-primary">
                 Recent Messages
                 {unreadCount > 0 && (
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-label text-[10px] font-bold text-on-primary">
@@ -445,7 +437,7 @@ export default function DashboardPage() {
             <div className="text-right mt-4">
               <Link
                 href="/faculty/messages"
-                className="font-headline text-[12px] font-bold text-primary transition-colors hover:text-blue-600 hover:underline"
+                className="shine-button inline-block font-headline text-[12px] font-bold text-primary transition-all hover:text-blue-600 hover:underline"
               >
                 View all messages
               </Link>
@@ -455,22 +447,22 @@ export default function DashboardPage() {
       </div>
 
       {/* QUICK ACTION BUTTONS */}
-      <div className="flex flex-wrap items-center gap-3 px-6 pb-10">
+      <div className="flex flex-col gap-3 px-6 pb-10 sm:flex-row sm:items-center">
         <Link
           href="/faculty/editor"
-          className="rounded-lg bg-primary px-5 py-2.5 font-headline text-[13px] font-bold text-on-primary shadow-sm transition-opacity hover:opacity-90 active:scale-95"
+          className="shine-button flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-headline text-[14px] font-bold text-on-primary shadow-sm transition-all active:scale-95 md:text-[15px]"
         >
           Edit Profile
         </Link>
         <Link
           href="/faculty/cv-upload"
-          className="rounded-lg border border-outline-variant bg-surface-container px-5 py-2.5 font-headline text-[13px] font-medium text-secondary shadow-sm transition-colors hover:bg-surface-container-high hover:text-primary active:scale-95"
+          className="shine-button flex items-center justify-center rounded-lg border border-outline-variant bg-surface-container px-5 py-2.5 font-headline text-[14px] font-medium text-secondary shadow-sm transition-all hover:bg-surface-container-high hover:text-primary active:scale-95 md:text-[15px]"
         >
           Upload CV
         </Link>
         <Link
           href={`/faculty/${profile.slug}`}
-          className="rounded-lg border border-outline-variant bg-surface-container px-5 py-2.5 font-headline text-[13px] font-medium text-secondary shadow-sm transition-colors hover:bg-surface-container-high hover:text-primary active:scale-95"
+          className="shine-button flex items-center justify-center rounded-lg border border-outline-variant bg-surface-container px-5 py-2.5 font-headline text-[14px] font-medium text-secondary shadow-sm transition-all hover:bg-surface-container-high hover:text-primary active:scale-95 md:text-[15px]"
         >
           Preview Public Profile
         </Link>

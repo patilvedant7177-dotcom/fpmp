@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PublicNavbar from "@/components/shared/PublicNavbar";
+import PublicFooter from "@/components/shared/PublicFooter";
 import { supabase } from "@/lib/supabase";
 
 const CAMPUS_IMAGE_SRC =
@@ -104,52 +105,51 @@ export default function HomePage() {
       <PublicNavbar />
 
       <main className="min-h-screen">
-        <div className="flex min-h-screen items-stretch pt-16">
-          <section className="z-10 flex w-full flex-col justify-center bg-surface px-12 py-20 lg:w-[45%] lg:px-24">
+        <div className="flex min-h-screen flex-col lg:flex-row items-stretch pt-16">
+          <section className="z-10 flex w-full flex-col justify-center bg-surface px-6 py-12 md:px-12 lg:w-[45%] lg:px-24 lg:py-20">
             <div className="max-w-xl">
-              <span className="reveal reveal-1 font-label mb-6 block text-xs font-bold uppercase tracking-[0.15em] text-primary">
-                <br />
+              <span className="reveal reveal-1 font-label mb-4 block text-[10px] font-bold uppercase tracking-[0.15em] text-primary md:mb-6 md:text-xs">
+                Curating Academic Excellence
               </span>
-              <h1 className="reveal reveal-2 font-headline mb-8 text-[3.5rem] font-extrabold leading-[1.1] tracking-tighter text-primary">
-                Curating the
+              <h1 className="reveal reveal-2 font-headline mb-6 text-[2.5rem] font-extrabold leading-[1.1] tracking-tighter text-primary md:mb-8 md:text-[3.5rem]">
+                Faculty & Staff
                 <br />
-                Academic Profile{" "}
-                <span className="inline-block">Management.</span>
+                Information <span className="inline-block hero-text-gradient">Portal.</span>
               </h1>
-              <p className="reveal reveal-3 font-body mb-12 max-w-md text-lg text-secondary">
+              <p className="reveal reveal-3 font-body mb-8 max-w-md text-base text-secondary md:mb-12 md:text-lg">
                 The definitive enterprise ecosystem for engineering
                 institutions to centralize, standardize, and showcase faculty
                 excellence. A unified platform bridging the gap between raw
                 academic data and institutional transparency
               </p>
-              <div className="reveal reveal-4 mb-20">
+              <div className="reveal reveal-4 mb-12 md:mb-20">
                 <Link
                   href="/directory"
-                  className="hero-gradient inline-flex items-center gap-3 rounded-md px-10 py-5 text-lg font-bold text-on-primary shadow-xl shadow-primary/20 transition-transform hover:scale-105"
+                  className="hero-gradient inline-flex items-center gap-3 rounded-md px-8 py-4 text-base font-bold text-on-primary shadow-xl shadow-primary/20 transition-transform hover:scale-105 md:px-10 md:py-5 md:text-lg"
                 >
                   <span>Access Public Directory</span>
                   <span className="material-symbols-outlined">arrow_forward</span>
                 </Link>
               </div>
-              <div className="grid grid-cols-2 items-start gap-8 border-t border-outline-variant/20 pt-12">
-                <div>
-                  <div className="font-headline mb-1 text-4xl font-extrabold tracking-tighter text-primary">
+              <div className="grid grid-cols-2 items-start gap-8 border-t border-outline-variant/20 pt-8 reveal reveal-4 md:gap-12 md:pt-12">
+                <div className="flex flex-col">
+                  <div className="font-headline mb-1 text-3xl font-extrabold tracking-tighter text-primary md:mb-2 md:text-5xl">
                     <span className="counter" data-target={counts.faculty}>
                       0
                     </span>
                     +
                   </div>
-                  <div className="font-label text-[0.7rem] font-semibold uppercase tracking-widest text-outline">
-                    Faculty Members
+                  <div className="font-label text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 md:text-xs md:tracking-[0.25em]">
+                    Faculty
                   </div>
                 </div>
-                <div>
-                  <div className="font-headline mb-1 text-4xl font-extrabold tracking-tighter text-primary">
+                <div className="flex flex-col">
+                  <div className="font-headline mb-1 text-3xl font-extrabold tracking-tighter text-primary md:mb-2 md:text-5xl">
                     <span className="counter" data-target={counts.departments}>
                       0
                     </span>
                   </div>
-                  <div className="font-label text-[0.7rem] font-semibold uppercase tracking-widest text-outline">
+                  <div className="font-label text-[10px] font-black uppercase tracking-[0.2em] text-primary/80 md:text-xs md:tracking-[0.25em]">
                     Departments
                   </div>
                 </div>
@@ -164,33 +164,34 @@ export default function HomePage() {
                 alt="University Campus Architecture"
                 fill
                 className="bg-drift object-cover grayscale-[20%] contrast-[1.1]"
-                sizes="(max-width: 1024px) 0vw, 55vw"
+                sizes="(max-width: 1024px) 100vw, 55vw"
                 priority
               />
               <div className="absolute inset-0 bg-primary/10 mix-blend-multiply" />
-              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent" />
+              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent hidden lg:block" />
+              <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-surface to-transparent lg:hidden" />
             </div>
-            <div className="relative z-10 flex w-full flex-col items-end justify-center gap-6 pr-24">
-              <div className="group w-80 cursor-pointer reveal reveal-3">
-                <div className="card-hover-depth rounded-xl bg-surface-container-lowest/90 p-8 shadow-2xl shadow-black/5 backdrop-blur-md">
-                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-primary-fixed text-on-primary-fixed">
+            <div className="relative z-10 flex w-full flex-col items-center justify-center gap-6 px-6 py-20 lg:items-end lg:pr-24 lg:py-0">
+              <div className="group w-full max-w-sm cursor-pointer reveal reveal-3">
+                <div className="card-hover-depth rounded-xl bg-surface-container-lowest/90 p-6 shadow-2xl shadow-black/5 backdrop-blur-md md:p-8">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-fixed text-on-primary-fixed md:mb-6 md:h-12 md:w-12">
                     <span
-                      className="material-symbols-outlined"
+                      className="material-symbols-outlined text-xl md:text-2xl"
                       style={{ fontVariationSettings: '"FILL" 1' }}
                     >
                       account_balance
                     </span>
                   </div>
-                  <h3 className="font-headline mb-2 text-xl font-bold text-primary">
+                  <h3 className="font-headline mb-2 text-lg font-bold text-primary md:text-xl">
                     Faculty Login
                   </h3>
                   <p className="font-body mb-6 text-sm leading-relaxed text-secondary">
-                    Access your official academic identity.Management dashboard
+                    Access your official academic identity. Management dashboard
                     for university faculty.
                   </p>
                   <Link
                     href={user ? "/faculty/dashboard" : "/login/faculty"}
-                    className="flex items-center gap-2 text-sm font-bold text-primary transition-all group hover:opacity-80"
+                    className="flex items-center gap-2 text-sm font-bold text-primary transition-all group hover:opacity-80 shine-button px-2 py-1 -ml-2 rounded"
                   >
                     <span>{user ? "Go to Dashboard" : "Sign In"}</span>
                     <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
@@ -199,17 +200,17 @@ export default function HomePage() {
                   </Link>
                 </div>
               </div>
-              <div className="group w-80 cursor-pointer reveal reveal-4">
-                <div className="card-hover-depth card-dark-hover rounded-xl border border-white/10 bg-primary/95 p-8 shadow-2xl shadow-primary/20 backdrop-blur-md">
-                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-white/10 text-white">
+              <div className="group w-full max-w-sm cursor-pointer reveal reveal-4">
+                <div className="card-hover-depth card-dark-hover rounded-xl border border-white/10 bg-primary/95 p-6 shadow-2xl shadow-primary/20 backdrop-blur-md md:p-8">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white md:mb-6 md:h-12 md:w-12">
                     <span
-                      className="material-symbols-outlined"
+                      className="material-symbols-outlined text-xl md:text-2xl"
                       style={{ fontVariationSettings: '"FILL" 1' }}
                     >
                       admin_panel_settings
                     </span>
                   </div>
-                  <h3 className="font-headline mb-2 text-xl font-bold text-white">
+                  <h3 className="font-headline mb-2 text-lg font-bold text-white md:text-xl">
                     Admin/HOD Login
                   </h3>
                   <p className="font-body mb-6 text-sm leading-relaxed text-blue-100">
@@ -218,7 +219,7 @@ export default function HomePage() {
                   </p>
                   <Link
                     href={user && role === 'admin' ? "/admin/dashboard" : "/login/admin"}
-                    className="flex items-center gap-2 text-sm font-bold text-white transition-all group hover:opacity-80"
+                    className="flex items-center gap-2 text-sm font-bold text-white transition-all group hover:opacity-80 shine-button px-2 py-1 -ml-2 rounded"
                   >
                     <span>{user && role === 'admin' ? "Go to Dashboard" : "Sign In"}</span>
                     <span className="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
@@ -228,21 +229,21 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <div className="absolute bottom-12 right-12 flex items-center gap-4 text-white/60">
-              <div className="h-px w-24 bg-white/40" />
+            <div className="absolute bottom-8 right-8 flex items-center gap-4 text-white/60 md:bottom-12 md:right-12">
+              <div className="h-px w-12 bg-white/40 md:w-24" />
               <span className="font-label text-[10px] uppercase tracking-widest">
-
+                Professional
               </span>
             </div>
           </section>
         </div>
 
-        <div className="bg-surface-container-low px-12 py-24 lg:px-24">
+        <div className="bg-surface-container-low px-6 py-16 md:px-12 md:py-24 lg:px-24">
           <div className="mx-auto max-w-7xl">
-            <h2 className="font-headline mb-12 text-3xl font-bold text-primary">
-              Features
+            <h2 className="font-headline mb-10 text-2xl font-bold text-primary md:mb-12 md:text-3xl">
+              Key Features
             </h2>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
               <div className="card-hover-depth rounded-xl border border-outline-variant/20 bg-surface p-8 shadow-sm hover:border-primary/30">
                 <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-primary">
                   <span className="material-symbols-outlined">database</span>
@@ -285,33 +286,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <footer className="relative z-10 w-full bg-slate-100/50 backdrop-blur-sm">
-        <div className="flex flex-col items-center justify-between border-t border-slate-200/20 px-12 py-6 md:flex-row">
-          <div className="font-label text-[10px] uppercase tracking-wide text-slate-500">
-            FPMP
-          </div>
-          <div className="mt-4 flex gap-8 md:mt-0">
-            <Link
-              className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600"
-              href="/privacy"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600"
-              href="/terms"
-            >
-              Terms of Service
-            </Link>
-            <Link
-              className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600"
-              href="/contact"
-            >
-              Contact Support
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

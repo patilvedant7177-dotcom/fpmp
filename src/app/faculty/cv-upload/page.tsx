@@ -1052,7 +1052,7 @@ export default function CVUploadPage() {
                     <p className="font-body text-[14px] text-secondary">
                       Accepts PDF files only · Max 10 MB
                     </p>
-                    <div className="mt-4 px-5 py-2.5 bg-primary text-on-primary rounded-lg font-headline font-bold text-[13px] shadow-sm pointer-events-auto">
+                    <div className="shine-button mt-4 px-5 py-2.5 bg-primary text-on-primary rounded-lg font-headline font-bold text-[15px] shadow-sm pointer-events-auto transition-all">
                       Browse Files
                     </div>
                   </div>
@@ -1067,7 +1067,7 @@ export default function CVUploadPage() {
                       type="button"
                       onClick={runUploadAndExtract}
                       disabled={uploadingFile || profileLoading || !profile}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg font-headline text-[14px] font-bold shadow-sm transition-colors hover:bg-primary/90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg font-headline text-[15px] font-bold shadow-sm transition-colors hover:bg-primary/90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                     >
                       {uploadingFile ? (
                         <>
@@ -1106,7 +1106,7 @@ export default function CVUploadPage() {
                 </div>
                 <button
                   onClick={reset}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-700 text-white rounded-lg font-headline text-[14px] font-bold shadow-sm transition-colors hover:bg-red-800 active:scale-95"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-700 text-white rounded-lg font-headline text-[15px] font-bold shadow-sm transition-colors hover:bg-red-800 active:scale-95"
                 >
                   <RefreshCw size={15} /> Try Again
                 </button>
@@ -1177,14 +1177,14 @@ export default function CVUploadPage() {
                                   }
                                   setEditing((e) => ({ ...e, [section]: !e[section] }));
                                 }}
-                                className="px-4 py-2 rounded-lg border border-green-300 bg-transparent font-headline text-[13px] font-bold text-green-800 hover:bg-green-50 transition-colors"
+                                className="px-4 py-2 rounded-lg border border-green-300 bg-transparent font-headline text-[15px] font-bold text-green-800 hover:bg-green-50 transition-colors"
                               >
                                 {editing[section] ? "Done" : "Edit"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleAcceptSection(section)}
-                                className="px-4 py-2 rounded-lg bg-primary text-on-primary font-headline text-[13px] font-bold shadow-sm hover:bg-primary/90 transition-colors"
+                                className="px-4 py-2 rounded-lg bg-primary text-on-primary font-headline text-[15px] font-bold shadow-sm hover:bg-primary/90 transition-colors"
                               >
                                 Accept
                               </button>
@@ -1205,7 +1205,7 @@ export default function CVUploadPage() {
                     type="button"
                     onClick={handleAcceptAll}
                     disabled={acceptAllRunning}
-                    className="w-full py-2.5 rounded-lg bg-primary text-on-primary font-headline text-[14px] font-bold shadow-sm hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                    className="w-full py-2.5 rounded-lg bg-primary text-on-primary font-headline text-[15px] font-bold shadow-sm hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-colors"
                   >
                     {acceptAllRunning ? "Saving…" : "Accept All"}
                   </button>
@@ -1222,13 +1222,13 @@ export default function CVUploadPage() {
                 <div className="flex gap-3 mt-2 flex-wrap justify-center">
                   <button
                     onClick={reset}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 border border-green-400 text-green-700 rounded-lg font-headline text-[13px] font-bold transition-colors hover:bg-green-100 active:scale-95"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 border border-green-400 text-green-700 rounded-lg font-headline text-[15px] font-bold transition-colors hover:bg-green-100 active:scale-95"
                   >
                     <RefreshCw size={15} /> Upload Another
                   </button>
                   <button
                     onClick={() => router.push("/faculty/editor")}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-green-700 text-white rounded-lg font-headline text-[14px] font-bold shadow-sm transition-colors hover:bg-green-800 active:scale-95"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-green-700 text-white rounded-lg font-headline text-[15px] font-bold shadow-sm transition-colors hover:bg-green-800 active:scale-95"
                   >
                     Review in Editor <ArrowRight size={16} />
                   </button>

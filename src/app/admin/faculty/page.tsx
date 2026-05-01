@@ -122,19 +122,45 @@ export default function AdminFacultyPage() {
   }, []);
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteData, setInviteData] = useState({
+    name: "",
+    email: "",
+    dept: "Electronics & Computer Science",
+    desig: "Assistant Professor"
+  });
   const [isInviting, setIsInviting] = useState(false);
+  const [invitationResult, setInvitationResult] = useState<{username: string, tempPassword: string} | null>(null);
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
+    if (!inviteData.email.trim() || !inviteData.name.trim()) return;
     setIsInviting(true);
-    // Mock invite logic: In real app, this would send an email and create a user/profile
-    setTimeout(() => {
-      alert(`Invitation sent to ${inviteEmail}`);
-      setInviteEmail("");
-      setIsInviteModalOpen(false);
+    
+    try {
+      const res = await fetch('/api/admin/invite-faculty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: inviteData.name,
+          email: inviteData.email,
+          department: inviteData.dept,
+          designation: inviteData.desig
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setInvitationResult({
+          username: data.username,
+          tempPassword: data.tempPassword
+        });
+      } else {
+        alert(data.error || "Failed to invite faculty");
+      }
+    } catch (err) {
+      alert("An error occurred during invitation");
+    } finally {
       setIsInviting(false);
-    }, 1000);
+    }
   };
 
   // Derive filtered sorting
@@ -185,7 +211,7 @@ export default function AdminFacultyPage() {
     });
 
     return raw;
-  }, [searchQuery, deptFilter, statusFilter, designFilter, sortColumn, sortDir]);
+  }, [facultyData, searchQuery, deptFilter, statusFilter, designFilter, sortColumn, sortDir]);
 
   // Pagination
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
@@ -369,12 +395,10 @@ export default function AdminFacultyPage() {
           onChange={(e) => setDeptFilter(e.target.value)}
         >
           <option>All Departments</option>
-          <option>Electronics & CS</option>
+          <option>Electronics & Computer Science</option>
+          <option>Computer Science & Engineering</option>
+          <option>Mechanical Engineering</option>
           <option>Computer Engineering</option>
-          <option>Electronics</option>
-          <option>Mechanical</option>
-          <option>Civil</option>
-          <option>Information Tech</option>
         </select>
         <select
           className="h-[38px] w-full max-w-[140px] rounded-lg border border-slate-300 bg-white px-3 font-body text-[13px] text-slate-900 shadow-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-primary/10"
@@ -692,35 +716,125 @@ export default function AdminFacultyPage() {
       {/* INVITE FACULTY MODAL */}
       {isInviteModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-all animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="mb-4 font-headline text-[18px] font-bold text-slate-900">
-              Invite Faculty
-            </h3>
-            <p className="mb-4 font-body text-[14px] text-slate-500">
-              Enter the faculty member's email address to send them an invitation to join the portal.
-            </p>
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="faculty@crce.org"
-              className="mb-6 w-full rounded-xl border border-slate-200 bg-slate-50 p-4 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsInviteModalOpen(false)}
-                className="rounded-lg px-4 py-2 font-headline text-[14px] font-bold text-slate-500 hover:bg-slate-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleInvite}
-                disabled={isInviting || !inviteEmail.trim() || !inviteEmail.includes('@')}
-                className="rounded-lg bg-primary px-6 py-2 font-headline text-[14px] font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
-              >
-                {isInviting ? "Sending..." : "Send Invitation"}
-              </button>
-            </div>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            {!invitationResult ? (
+              <>
+                <h3 className="mb-2 font-headline text-[20px] font-bold text-slate-900">
+                  Invite New Faculty
+                </h3>
+                <p className="mb-6 font-body text-[14px] text-slate-500">
+                  This will create a new faculty profile and a login account simultaneously.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="font-label text-[11px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
+                    <input
+                      type="text"
+                      value={inviteData.name}
+                      onChange={(e) => setInviteData({...inviteData, name: e.target.value})}
+                      placeholder="e.g. Dr. John Doe"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    />
+                  </div>
+                  
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="font-label text-[11px] font-bold uppercase tracking-wider text-slate-500">Official Email</label>
+                    <input
+                      type="email"
+                      value={inviteData.email}
+                      onChange={(e) => setInviteData({...inviteData, email: e.target.value})}
+                      placeholder="faculty@crce.org"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-label text-[11px] font-bold uppercase tracking-wider text-slate-500">Department</label>
+                    <select
+                      value={inviteData.dept}
+                      onChange={(e) => setInviteData({...inviteData, dept: e.target.value})}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    >
+                      <option>Electronics & Computer Science</option>
+                      <option>Computer Science & Engineering</option>
+                      <option>Mechanical Engineering</option>
+                      <option>Computer Engineering</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-label text-[11px] font-bold uppercase tracking-wider text-slate-500">Designation</label>
+                    <select
+                      value={inviteData.desig}
+                      onChange={(e) => setInviteData({...inviteData, desig: e.target.value})}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
+                    >
+                      <option>Head of Department</option>
+                      <option>Professor</option>
+                      <option>Associate Professor</option>
+                      <option>Assistant Professor</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-end gap-3 border-t border-slate-100 pt-6">
+                  <button
+                    onClick={() => setIsInviteModalOpen(false)}
+                    className="rounded-lg px-6 py-2.5 font-headline text-[14px] font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleInvite}
+                    disabled={isInviting || !inviteData.email.includes('@') || !inviteData.name.trim()}
+                    className="rounded-lg bg-primary px-8 py-2.5 font-headline text-[14px] font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                  >
+                    {isInviting ? "Inviting..." : "Create Profile & Account"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="mb-2 font-headline text-[20px] font-bold text-slate-900">
+                  Faculty Invited!
+                </h3>
+                <p className="mb-6 font-body text-[14px] text-slate-500">
+                  The profile has been created and login credentials generated.
+                </p>
+                
+                <div className="mb-8 rounded-xl bg-slate-50 p-6 text-left border border-slate-200">
+                  <div className="mb-4">
+                    <label className="font-label text-[10px] font-bold uppercase tracking-wider text-slate-400">Username / Email</label>
+                    <div className="font-headline text-[15px] font-bold text-slate-900">{invitationResult.username}</div>
+                  </div>
+                  <div>
+                    <label className="font-label text-[10px] font-bold uppercase tracking-wider text-slate-400">Temporary Password</label>
+                    <div className="font-headline text-[18px] font-bold tracking-wider text-primary">{invitationResult.tempPassword}</div>
+                  </div>
+                  <p className="mt-4 font-body text-[12px] italic text-slate-500 text-center">
+                    Please securely share these credentials with the faculty member.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsInviteModalOpen(false);
+                    setInvitationResult(null);
+                    setInviteData({ name: "", email: "", dept: "Electronics & Computer Science", desig: "Assistant Professor" });
+                    window.location.reload();
+                  }}
+                  className="w-full rounded-lg bg-slate-900 py-3 font-headline text-[14px] font-bold text-white shadow-lg transition-all hover:bg-slate-800"
+                >
+                  Done
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

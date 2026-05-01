@@ -1,32 +1,27 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter, Manrope, Public_Sans } from "next/font/google";
+import { Geist_Mono, Bricolage_Grotesque, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
- 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
 });
 
-const publicSans = Public_Sans({
-  variable: "--font-public",
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "FPMP | Faculty Profile Management Platform",
+  title: "Faculty & Staff Information Portal",
   description:
-    "Enterprise ecosystem for engineering institutions to centralize and showcase faculty excellence.",
+    "The definitive enterprise ecosystem for engineering institutions to centralize, standardize, and showcase faculty and staff excellence.",
 };
 
 import ChatAssistant from "@/components/chat/ChatAssistant";
@@ -37,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${manrope.variable} ${publicSans.variable} ${inter.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${bricolage.variable} ${hanken.variable} ${geistMono.variable}`}>
       <head>
         {/* ✅ Material Symbols */}
         <link

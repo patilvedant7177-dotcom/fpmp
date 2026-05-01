@@ -1,4 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { unstable_noStore as noStore } from "next/cache";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,6 +16,7 @@ const TwitterIcon = ({ size = 18 }: { size?: number }) => (
 );
 
 import PublicNavbar from "@/components/shared/PublicNavbar";
+import PublicFooter from "@/components/shared/PublicFooter";
 import ContactForm from "@/components/profile/ContactForm";
 import ExpandableList from "./ExpandableList";
 import PrintButton from "./PrintButton";
@@ -36,7 +39,7 @@ function getInitials(name: string) {
 
 const SectionHeader = ({ title, count }: { title: string; count?: number }) => (
   <div className="mb-4 flex items-center justify-between border-b border-outline-variant/30 pb-2">
-    <h3 className="font-label text-[11px] font-bold uppercase tracking-widest text-outline">
+    <h3 className="font-headline text-[15px] font-extrabold uppercase tracking-widest text-primary">
       {title}
     </h3>
     {count !== undefined && (
@@ -135,9 +138,11 @@ export default async function FacultyProfile({ params }: PageProps) {
   // --- NEW ANALYTICS DATA PROCESSING ---
   
   // 6. Public Impact Metrics
+  noStore();
   let inquiriesCount = 0;
   try {
-    const { count } = await supabase
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { count } = await supabaseAdmin
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('to_faculty', profile.id)
@@ -169,11 +174,31 @@ export default async function FacultyProfile({ params }: PageProps) {
   });
 
   // 3. Expertise Radar Data
-  const radarData = (profile.keywords || ["Research", "Innovation", "Teaching", "Mentorship", "Industry"]).slice(0, 5).map((kw: string) => ({
-    subject: kw,
-    A: 50 + Math.random() * 40, // Simulated score based on keywords, or you could count occurrences
-    fullMark: 100,
-  }));
+  const radarData = (profile.keywords || ["Research", "Innovation", "Teaching", "Mentorship", "Industry"]).slice(0, 5).map((kw: string) => {
+    // Calculate a stable score based on activity and a keyword-specific hash
+    const pubMentions = publications.filter((p: any) => 
+      (p.title || "").toLowerCase().includes(kw.toLowerCase()) || 
+      (p.venue || p.journal || "").toLowerCase().includes(kw.toLowerCase())
+    ).length;
+    
+    const projMentions = (profile.projects || []).filter((p: any) => 
+      (p.title || "").toLowerCase().includes(kw.toLowerCase()) || 
+      (p.description || "").toLowerCase().includes(kw.toLowerCase())
+    ).length;
+
+    // Stable hash-based base score so it doesn't jump on refresh
+    const hash = kw.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const baseScore = 65 + (hash % 15); // 65-80
+    
+    // Add weight for actual mentions in their portfolio
+    const activityBonus = Math.min((pubMentions * 4) + (projMentions * 6), 20);
+
+    return {
+      subject: kw,
+      A: Math.min(baseScore + activityBonus, 95),
+      fullMark: 100,
+    };
+  });
   
   // If no keywords, provide defaults
   if (radarData.length < 3) {
@@ -195,24 +220,17 @@ export default async function FacultyProfile({ params }: PageProps) {
       </div>
 
       <ViewCounter profileId={profile.id} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 pb-12 pt-24 md:px-12">
-        {/* BACK BUTTON */}
-        <div className="py-6 no-print">
-          <Link href="/directory" className="group inline-flex items-center gap-2 text-sm font-medium text-secondary transition-colors hover:text-primary">
-            <span className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-            Back to Directory
-          </Link>
-        </div>
-
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-8 pt-20 md:px-12 md:pb-12 md:pt-24">
         {/* PROFILE HERO BANNER */}
-        <div className="mb-10 flex flex-col gap-8 overflow-hidden rounded-2xl border border-outline-variant/30 bg-gradient-to-br from-surface-container-high to-surface-container-highest p-8 shadow-sm md:flex-row md:items-start">
-          <div className="relative flex h-[140px] w-[140px] shrink-0 items-center justify-center rounded-2xl bg-surface shadow-md border-4 border-surface overflow-hidden group">
+        <div className="mb-6 flex flex-col gap-6 overflow-hidden rounded-2xl border border-outline-variant/30 bg-gradient-to-br from-surface-container-high to-surface-container-highest p-5 shadow-sm md:mb-10 md:flex-row md:items-start md:gap-8 md:p-8">
+          <div className="relative mx-auto flex h-[160px] w-[160px] shrink-0 items-center justify-center rounded-2xl bg-surface shadow-md border-4 border-surface overflow-hidden group md:mx-0 md:h-[220px] md:w-[220px]">
             {profile.avatar_url ? (
               <Image 
-                src={`${STORAGE_URL}${profile.avatar_url}`} 
+                src={profile.avatar_url.startsWith('http') ? profile.avatar_url : `${STORAGE_URL}${profile.avatar_url}`} 
                 alt={profile.name} 
                 fill 
                 className="object-cover"
+                unoptimized={profile.avatar_url.includes('googleusercontent.com')}
               />
             ) : (
               <div className="absolute inset-0 bg-slate-100 flex items-center justify-center">
@@ -224,21 +242,21 @@ export default async function FacultyProfile({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="flex-1">
-            <h1 className="mb-1 font-headline text-[32px] font-extrabold tracking-tighter text-primary">
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="mb-1 font-headline text-[24px] font-extrabold tracking-tighter text-primary md:text-[32px]">
               {profile.name}
             </h1>
-            <p className="mb-4 font-body text-[15px] font-medium text-secondary">
+            <p className="mb-4 font-body text-sm font-medium text-secondary md:text-[15px]">
               {profile.designation} — {profile.experience || "N/A experience"}
             </p>
 
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <span className="rounded-md bg-primary px-3 py-1 font-label text-[11px] font-bold uppercase tracking-wider text-on-primary">
+            <div className="mb-6 flex flex-wrap items-center justify-center gap-3 md:justify-start">
+              <span className="rounded-md bg-primary px-3 py-1 font-label text-[10px] font-bold uppercase tracking-wider text-on-primary md:text-[11px]">
                 {profile.department}
               </span>
 
               {profile.social_links && (
-                <div className="flex items-center gap-3 ml-2 border-l border-outline-variant/30 pl-4">
+                <div className="flex items-center gap-3 ml-0 border-l-0 pl-0 border-outline-variant/30 md:ml-2 md:border-l md:pl-4">
                   {profile.social_links.linkedin && (
                     <a href={profile.social_links.linkedin} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-[#0077b5] transition-colors" title="LinkedIn">
                       <LinkedInIcon size={18} />
@@ -267,7 +285,7 @@ export default async function FacultyProfile({ params }: PageProps) {
                 </div>
               )}
               {profile.email && (
-                <a href={`mailto:${profile.email}`} className="text-secondary hover:text-primary transition-colors ml-2 border-l border-outline-variant/30 pl-4" title="Email">
+                <a href={`mailto:${profile.email}`} className="text-secondary hover:text-primary transition-colors ml-0 border-l-0 pl-0 md:ml-2 md:border-l md:border-outline-variant/30 md:pl-4" title="Email">
                   <Mail size={18} />
                 </a>
               )}
@@ -275,7 +293,7 @@ export default async function FacultyProfile({ params }: PageProps) {
 
             <div className="space-y-2">
               {profile.memberships && profile.memberships.length > 0 && (
-                <div className="flex items-center gap-1.5 font-body text-[13px] text-secondary transition-colors hover:text-primary">
+                <div className="flex items-center justify-center gap-1.5 font-body text-[12px] text-secondary transition-colors hover:text-primary md:justify-start md:text-[13px]">
                   <Users size={16} />
                   {profile.memberships.join(" · ")}
                 </div>
@@ -291,15 +309,43 @@ export default async function FacultyProfile({ params }: PageProps) {
           </div>
         </div>
 
-        {/* ACTIVITY GALLERY (NO-PRINT) */}
-        <ActivityGallery items={profile.faculty_gallery || []} />
+        {/* TOP SECTION: GALLERY & PEDIGREE */}
+        <div className={`mb-8 grid grid-cols-1 gap-6 md:mb-12 md:gap-10 ${profile.faculty_gallery?.length > 0 ? "lg:grid-cols-2" : ""}`}>
+          {profile.faculty_gallery?.length > 0 && (
+            <div className="w-full">
+              <ActivityGallery items={profile.faculty_gallery} />
+            </div>
+          )}
+          
+          <div className="w-full">
+            {educationPedigree.length > 0 && (
+              <section className="flex flex-col h-full">
+                <SectionHeader title="Academic Pedigree" />
+                <div className="grid grid-cols-1 gap-4 overflow-y-auto pr-1 hide-scrollbar h-[280px] sm:grid-cols-2">
+                  {educationPedigree.map((edu: any, idx: number) => (
+                    <div key={idx} className="flex flex-col rounded-2xl border border-outline-variant/20 bg-gradient-to-br from-surface to-surface-container-low p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/20 group">
+                      <div className="mb-3 flex items-center justify-between">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <GraduationCap size={20} />
+                        </div>
+                        <span className="font-label text-[11px] font-bold text-outline tracking-wider">{edu.year}</span>
+                      </div>
+                      <h4 className="font-headline text-[14px] font-bold text-primary leading-tight">{edu.degree}</h4>
+                      <p className="mt-1 font-body text-[12px] text-secondary opacity-80">{edu.institution}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
 
         {/* PROFILE OVERVIEW & KEYWORDS */}
-        <div className="mb-12 grid grid-cols-1 gap-10 lg:grid-cols-3">
+        <div className="mb-8 grid grid-cols-1 gap-6 md:mb-12 md:gap-10 lg:grid-cols-3">
           <section className="lg:col-span-2">
             <SectionHeader title="Expertise Overview" />
             <div className="relative rounded-2xl bg-surface-container-low/20 p-1">
-              <p className="font-body text-[15px] leading-relaxed text-secondary border-l-[4px] border-primary/60 pl-6 py-2">
+              <p className="font-body text-sm leading-relaxed text-secondary border-l-[3px] border-primary/60 pl-4 py-2 md:text-[15px] md:border-l-[4px] md:pl-6">
                 {profile.about}
               </p>
             </div>
@@ -346,7 +392,7 @@ export default async function FacultyProfile({ params }: PageProps) {
         <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
         
         {/* TWO COLUMN PORTFOLIO LAYOUT */}
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           {/* LEFT COLUMN - Career & Background */}
           <div className="space-y-12">
             <section>
@@ -368,35 +414,10 @@ export default async function FacultyProfile({ params }: PageProps) {
                 <p className="text-xs text-outline italic">No milestones recorded.</p>
               )}
             </section>
-
-            {/* --- ACADEMIC PEDIGREE --- */}
-            {educationPedigree.length > 0 && (
-              <section>
-                <SectionHeader title="Academic Pedigree" />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {educationPedigree.map((edu: any, idx: number) => (
-                    <div key={idx} className="flex flex-col rounded-2xl border border-outline-variant/20 bg-gradient-to-br from-surface to-surface-container-low p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/20 group">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                          <GraduationCap size={20} />
-                        </div>
-                        <span className="font-label text-[11px] font-bold text-outline tracking-wider">{edu.year}</span>
-                      </div>
-                      <h4 className="font-headline text-[14px] font-bold text-primary leading-tight">{edu.degree}</h4>
-                      <p className="mt-1 font-body text-[12px] text-secondary opacity-80">{edu.institution}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-
           </div>
 
           {/* RIGHT COLUMN - Research Output & Engagement */}
           <div className="space-y-12">
-
-
             <section>
               <SectionHeader title="Invited Lectures" count={invitedTalks.length} />
               {invitedTalks.length > 0 ? (
@@ -443,6 +464,22 @@ export default async function FacultyProfile({ params }: PageProps) {
               </section>
             )}
 
+            {/* --- CUSTOM SECTIONS (ADDITIONAL INFO) --- */}
+            {profile.custom_sections && profile.custom_sections.length > 0 && (
+              <div className="space-y-12">
+                {profile.custom_sections.map((section: any, idx: number) => (
+                  <section key={idx}>
+                    <SectionHeader title={section.title || "Additional Information"} />
+                    <div className="rounded-2xl bg-surface-container-low/20 p-6 border border-outline-variant/10 shadow-sm transition-all hover:shadow-md hover:border-primary/10">
+                      <p className="font-body text-[14px] leading-relaxed text-secondary whitespace-pre-wrap">
+                        {section.content}
+                      </p>
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+
             <section className="pt-6 no-print">
                <div className="rounded-3xl bg-primary/5 p-1">
                  <ContactForm facultyName={profile.name} facultyEmail={profile.email} />
@@ -452,19 +489,7 @@ export default async function FacultyProfile({ params }: PageProps) {
         </div>
       </main>
 
-      {/* FOOTER */}
-      <footer className="mt-auto w-full bg-slate-100/50 backdrop-blur-sm no-print">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between border-t border-outline-variant/20 px-6 py-6 md:flex-row md:px-12">
-          <div className="font-label text-[10px] uppercase tracking-wide text-slate-500">
-            © 2026 FPMP - FR. CONCEICAO RODRIGUES COLLEGE OF ENGINEERING
-          </div>
-          <div className="mt-4 flex gap-8 md:mt-0">
-            <Link className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600" href="/privacy">Privacy Policy</Link>
-            <Link className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600" href="/terms">Terms of Service</Link>
-            <Link className="nav-link font-label text-[10px] uppercase tracking-wide text-slate-500 transition-colors hover:text-blue-600" href="/contact">Contact Support</Link>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

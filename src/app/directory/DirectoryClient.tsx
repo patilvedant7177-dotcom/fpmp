@@ -79,29 +79,22 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
   }, [searchQuery, deptFilter, designFilter, activeKeyword, facultyData]);
 
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8 pt-24 md:px-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 pt-20 md:px-12 md:pt-24">
       {/* PAGE HEADER */}
       <header className="mb-8 flex flex-col justify-between gap-4 border-b border-outline-variant/20 pb-6 md:flex-row md:items-end">
-        <div>
-          <Link
-            href="/"
-            className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-secondary transition-colors hover:text-primary"
-          >
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-            Back to Home
-          </Link>
-          <h1 className="mb-2 font-headline text-3xl font-extrabold tracking-tighter text-primary">
+        <div className="text-center md:text-left">
+          <h1 className="mb-2 font-headline text-2xl font-extrabold tracking-tighter text-primary md:text-3xl">
             Faculty Directory
           </h1>
-          <p className="font-body text-sm text-secondary">
+          <p className="font-body text-xs text-secondary md:text-sm">
             Fr. Conceicao Rodrigues College of Engineering, Mumbai
           </p>
         </div>
 
-        <div className="flex w-fit overflow-hidden rounded-md border border-outline-variant/30 bg-surface-container-lowest">
+        <div className="flex w-full md:w-fit overflow-hidden rounded-md border border-outline-variant/30 bg-surface-container-lowest">
           <button
             onClick={() => setViewMode("grid")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors md:flex-none md:text-[15px] ${
               viewMode === "grid"
                 ? "bg-primary-container text-on-primary-container"
                 : "bg-transparent text-secondary hover:bg-surface-container-low"
@@ -111,7 +104,7 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
           </button>
           <button
             onClick={() => setViewMode("list")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors md:flex-none md:text-[15px] ${
               viewMode === "list"
                 ? "bg-primary-container text-on-primary-container"
                 : "bg-transparent text-secondary hover:bg-surface-container-low"
@@ -162,22 +155,24 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="mr-2 font-label text-[11px] font-semibold uppercase tracking-widest text-outline">
+          <span className="mr-2 font-label text-[10px] font-semibold uppercase tracking-widest text-outline md:text-[11px]">
             Keywords:
           </span>
-          {dynamicKeywords.map((kw) => (
-            <button
-              key={kw}
-              onClick={() => setActiveKeyword(kw)}
-              className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
-                activeKeyword === kw
-                  ? "border-primary bg-primary text-on-primary"
-                  : "border-outline-variant/50 bg-surface-container-lowest text-secondary hover:bg-surface-container-low focus:ring-2 focus:ring-primary/20"
-              }`}
-            >
-              {kw}
-            </button>
-          ))}
+          <div className="flex flex-wrap gap-2">
+            {dynamicKeywords.map((kw) => (
+              <button
+                key={kw}
+                onClick={() => setActiveKeyword(kw)}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors md:px-4 md:py-1.5 md:text-[14px] ${
+                  activeKeyword === kw
+                    ? "border-primary bg-primary text-on-primary"
+                    : "border-outline-variant/50 bg-surface-container-lowest text-secondary hover:bg-surface-container-low focus:ring-2 focus:ring-primary/20"
+                }`}
+              >
+                {kw}
+              </button>
+            ))}
+          </div>
         </div>
 
         <p className="text-sm font-medium text-secondary">
@@ -211,14 +206,15 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
               >
                 <div className="relative flex h-[100px] items-center justify-center bg-gradient-to-br from-surface-container-high to-surface-container-highest">
                   <div
-                    className="absolute -bottom-8 flex h-[72px] w-[72px] items-center justify-center rounded-full border-4 border-surface shadow-md overflow-hidden bg-slate-50"
+                    className="absolute -bottom-14 flex h-[112px] w-[112px] items-center justify-center rounded-full border-4 border-surface shadow-md overflow-hidden bg-slate-50"
                   >
                     {member.avatar_url ? (
                       <Image
-                        src={`${STORAGE_URL}${member.avatar_url}`}
+                        src={member.avatar_url.startsWith('http') ? member.avatar_url : `${STORAGE_URL}${member.avatar_url}`}
                         alt={member.name}
                         fill
                         className="object-cover"
+                        unoptimized={member.avatar_url?.includes('googleusercontent.com')}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-primary/5 text-primary">
@@ -227,9 +223,9 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
                     )}
                   </div>
                 </div>
-                <div className="flex flex-1 flex-col p-6 pt-12">
+                <div className="flex flex-1 flex-col p-6 pt-16">
                   <div className="mb-2 text-center">
-                    <h3 className="font-headline text-lg font-bold text-primary">
+                    <h3 className="font-headline text-[20px] font-extrabold text-primary">
                       {member.name}
                     </h3>
                     <p className="mt-1 font-body text-xs font-medium text-secondary">
@@ -265,14 +261,15 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full shadow-sm bg-slate-50 border border-slate-100 overflow-hidden relative"
+                    className="flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-full shadow-sm bg-slate-50 border border-slate-100 overflow-hidden relative"
                   >
                     {member.avatar_url ? (
                       <Image
-                        src={`${STORAGE_URL}${member.avatar_url}`}
+                        src={member.avatar_url.startsWith('http') ? member.avatar_url : `${STORAGE_URL}${member.avatar_url}`}
                         alt={member.name}
                         fill
                         className="object-cover"
+                        unoptimized={member.avatar_url?.includes('googleusercontent.com')}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-primary/5 text-primary">
@@ -282,7 +279,7 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
                   </div>
 
                   <div>
-                    <h3 className="font-headline text-[15px] font-bold text-primary transition-colors group-hover:text-blue-600">
+                    <h3 className="font-headline text-[18px] font-extrabold text-primary transition-colors group-hover:text-blue-600">
                       {member.name}
                     </h3>
                     <p className="font-body text-[13px] text-secondary">

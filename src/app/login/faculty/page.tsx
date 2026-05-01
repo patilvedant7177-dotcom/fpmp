@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, KeyRound, ArrowRight, BookOpenCheck } from "lucide-react";
 import PublicNavbar from "@/components/shared/PublicNavbar";
+import PublicFooter from "@/components/shared/PublicFooter";
 import { supabase } from "@/lib/supabase";
 
 export default function FacultyLogin() {
@@ -83,22 +84,16 @@ export default function FacultyLogin() {
     <div className="flex min-h-screen flex-col bg-surface font-body relative overflow-hidden">
       <PublicNavbar />
 
-      {/* QUICK BACK NAVIGATION */}
-      <div className="absolute top-20 left-8 z-20">
-        <Link href="/" className="group inline-flex items-center gap-2 text-sm font-medium text-secondary transition-colors hover:text-primary">
-          <span className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1">arrow_back</span>
-          Back to Home
-        </Link>
-      </div>
+
 
       {/* BACKGROUND ELEMENTS */}
       <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "radial-gradient(#00346f 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      <main className="flex-1 flex items-center justify-center pt-24 pb-12 px-6 z-10">
+      <main className="flex-1 flex items-center justify-center pt-28 pb-20 px-6 z-10">
         <div className="w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-8 duration-700">
           
-          <div className="flex flex-col items-center mb-8 text-center reveal reveal-1">
+          <div className="flex flex-col items-center mb-6 text-center reveal reveal-1">
             <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-white mb-5 shadow-lg shadow-primary/20">
               <BookOpenCheck size={28} />
             </div>
@@ -131,18 +126,9 @@ export default function FacultyLogin() {
               </div>
 
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[12px] font-bold uppercase tracking-wider text-outline font-label">
-                    Password
-                  </label>
-                  <a 
-                    href="#" 
-                    onClick={handleForgotPassword}
-                    className="text-[12px] font-bold text-primary hover:text-blue-700 transition-colors"
-                  >
-                    Forgot details?
-                  </a>
-                </div>
+                <label className="text-[12px] font-bold uppercase tracking-wider text-outline font-label">
+                  Password
+                </label>
                 <div className="relative group">
                   <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 text-outline transition-colors group-focus-within:text-primary" size={18} />
                   <input 
@@ -181,16 +167,12 @@ export default function FacultyLogin() {
               </button>
             </form>
 
-            <div className="mt-8 text-center text-[13px] text-secondary border-t border-outline-variant/30 pt-6">
-              Don't have an account?{" "}
-              <a href="#" className="font-bold text-primary hover:underline">
-                Request access.
-              </a>
-            </div>
+
           </div>
 
         </div>
       </main>
+      <PublicFooter />
     </div>
   );
 }

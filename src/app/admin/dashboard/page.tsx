@@ -231,19 +231,19 @@ export default function AdminDashboardPage() {
           <h3 className="mb-5 font-headline text-[15px] font-bold text-slate-900">
             Department Completion
           </h3>
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-3">
             {departmentsData.map((d, i) => (
-              <div key={i} className="mb-2.5 flex items-center gap-3">
-                <span className="w-[140px] shrink-0 font-body text-[12px] text-slate-500">
+              <div key={i} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <span className="w-full shrink-0 font-body text-[12px] text-slate-500 sm:w-[140px]">
                   {d.dept}
                 </span>
-                <div className="relative h-[22px] flex-1 overflow-hidden rounded-[3px] bg-slate-100">
+                <div className="relative h-[22px] flex-1 overflow-hidden rounded-[4px] bg-slate-100">
                   <div
-                    className="flex h-full items-center rounded-[3px] bg-primary transition-all duration-500"
+                    className="flex h-full items-center rounded-[4px] bg-primary transition-all duration-500"
                     style={{ width: `${d.pct}%` }}
                   >
                     {d.pct > 0 && (
-                      <span className="pl-2 font-label text-[11px] font-bold text-white">
+                      <span className="pl-2 font-label text-[10px] font-bold text-white md:text-[11px]">
                         {d.pct}%
                       </span>
                     )}
@@ -410,35 +410,40 @@ export default function AdminDashboardPage() {
           {announcements.length === 0 ? (
             <p className="text-sm font-body text-slate-500">No active announcements right now.</p>
           ) : (
-            announcements.map((ann) => (
-              <div key={ann.id} className="mb-3 flex items-center justify-between rounded-lg border border-primary/30 bg-primary-container/30 px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 w-2 shrink-0 rounded-full bg-primary" />
-                  <p className="font-body text-[13px] font-medium text-[#7C2D00]">
-                    {ann.message}
-                  </p>
+            <div className="flex flex-col gap-3">
+              {announcements.map((ann) => (
+                <div key={ann.id} className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary-container/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    <p className="font-body text-[13px] font-medium text-[#7C2D00]">
+                      {ann.message}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 sm:justify-end">
+                    <span className="shrink-0 rounded bg-green-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-green-800">
+                      Active
+                    </span>
+                    <button 
+                      className="rounded-md bg-red-50 px-3 py-1 font-headline text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-100" 
+                      onClick={async () => {
+                        await supabase.from('announcements').update({ is_active: false }).eq('id', ann.id);
+                        setAnnouncements(announcements.filter(a => a.id !== ann.id));
+                      }}
+                    >
+                      Deactivate
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="shrink-0 rounded bg-green-100 px-2 py-0.5 font-label text-[10px] font-bold tracking-wider text-green-800">
-                    Active
-                  </span>
-                  <button className="rounded-md bg-red-50 px-3 py-1 font-headline text-[12px] font-semibold text-red-600 transition-colors hover:bg-red-100" onClick={async () => {
-                    await supabase.from('announcements').update({ is_active: false }).eq('id', ann.id);
-                    setAnnouncements(announcements.filter(a => a.id !== ann.id));
-                  }}>
-                    Deactivate
-                  </button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
 
       {/* NEW ANNOUNCEMENT MODAL */}
       {isNewAnnModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-all animate-in fade-in">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/40 backdrop-blur-sm transition-all animate-in fade-in sm:items-center">
+          <div className="w-full max-w-md rounded-t-2xl bg-white p-6 shadow-2xl animate-in slide-in-from-bottom sm:rounded-2xl sm:zoom-in-95 duration-200">
             <h3 className="mb-4 font-headline text-[18px] font-bold text-slate-900">
               New Announcement
             </h3>
@@ -452,17 +457,17 @@ export default function AdminDashboardPage() {
               rows={4}
               className="mb-6 w-full rounded-xl border border-slate-200 bg-slate-50 p-4 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
               <button
                 onClick={() => setIsNewAnnModalOpen(false)}
-                className="rounded-lg px-4 py-2 font-headline text-[14px] font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+                className="w-full rounded-lg px-4 py-2 font-headline text-[14px] font-bold text-slate-500 hover:bg-slate-100 transition-colors sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddAnnouncement}
                 disabled={isAddingAnn || !newAnnMessage.trim()}
-                className="rounded-lg bg-primary px-6 py-2 font-headline text-[14px] font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                className="w-full rounded-lg bg-primary px-6 py-2 font-headline text-[14px] font-bold text-white shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 sm:w-auto"
               >
                 {isAddingAnn ? "Posting..." : "Post Announcement"}
               </button>

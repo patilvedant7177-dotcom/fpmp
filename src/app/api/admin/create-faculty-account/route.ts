@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     // 1. Check if profile exists and if it already has a user_id
     const { data: profile, error: pError } = await supabaseAdmin
       .from('faculty_profiles')
-      .select('user_id, name')
+      .select('user_id, name, slug')
       .eq('id', profileId)
       .single();
 
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
       email_confirm: true,
       user_metadata: { 
         role: 'faculty',
-        full_name: name || profile.name
+        full_name: name || profile.name,
+        slug: profile.slug
       }
     });
 

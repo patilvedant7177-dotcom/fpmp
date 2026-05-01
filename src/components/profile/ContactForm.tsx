@@ -63,6 +63,7 @@ export default function ContactForm({ facultyName, facultyEmail }: ContactFormPr
       }
 
       setStatus("success");
+      setErrorMessage(data.id); // Store the tracking ID
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch {
       setStatus("error");
@@ -115,9 +116,20 @@ export default function ContactForm({ facultyName, facultyEmail }: ContactFormPr
           className="w-full rounded-lg border border-outline-variant/50 bg-surface px-4 py-3 font-body text-[13px] text-primary shadow-sm outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60"
         />
         {status === "success" && (
-          <p className="text-center font-body text-[13px] font-medium text-green-700" role="status">
-            Message sent!
-          </p>
+          <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-100 text-center animate-in zoom-in-95">
+            <p className="font-headline text-[14px] font-bold text-emerald-800 mb-1">
+              Message Sent Successfully!
+            </p>
+            <p className="font-body text-[12px] text-emerald-700 mb-3">
+              Keep this tracking link to check for the faculty's reply:
+            </p>
+            <div className="bg-white p-2 rounded-lg border border-emerald-200 break-all select-all font-mono text-[10px] text-emerald-900 mb-2">
+              {typeof window !== 'undefined' ? window.location.origin : ''}/inquiry/{errorMessage}
+            </div>
+            <p className="font-label text-[10px] text-emerald-600/70">
+              Tip: Bookmark this page or save the link.
+            </p>
+          </div>
         )}
         {status === "error" && errorMessage && (
           <p className="text-center font-body text-[13px] text-red-600" role="alert">

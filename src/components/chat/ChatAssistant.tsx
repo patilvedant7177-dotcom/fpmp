@@ -85,7 +85,12 @@ export default function ChatAssistant() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div 
+      className={cn(
+        "fixed right-6 z-50 flex flex-col items-end transition-all duration-300",
+        pathname.includes("/faculty/editor") ? "bottom-24" : "bottom-6"
+      )}
+    >
       {/* Chat Window */}
       {isOpen && (
         <div className="mb-4 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -96,7 +101,7 @@ export default function ChatAssistant() {
                 <Bot size={18} />
               </div>
               <div>
-                <h3 className="font-headline text-[14px] font-bold">FPMP Assistant</h3>
+                <h3 className="font-headline text-[14px] font-bold">Portal Assistant</h3>
                 <p className="text-[10px] opacity-80 uppercase tracking-widest">AI Powered</p>
               </div>
             </div>
@@ -131,7 +136,7 @@ export default function ChatAssistant() {
                   How can I help you today?
                 </h4>
                 <p className="mt-2 font-body text-[13px] text-secondary">
-                  I'm your AI assistant for the Faculty Performance Management Portal.
+                  I'm your AI assistant for the Faculty & Staff Information Portal.
                 </p>
                 <div className="mt-6 grid grid-cols-1 gap-2 w-full">
                   <button 
