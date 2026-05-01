@@ -383,21 +383,27 @@ export default async function FacultyProfile({ params }: PageProps) {
         <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
 
         {/* --- FULL WIDTH STRATEGIC PROJECTS --- */}
-        <StrategicProjects projects={profile.projects} />
+        {profile.projects?.length > 0 && (
+          <>
+            <StrategicProjects projects={profile.projects} />
+            <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
+          </>
+        )}
 
-        <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
-
-        <ResearchPublications publications={publications} />
-
-        <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
+        {publications?.length > 0 && (
+          <>
+            <ResearchPublications publications={publications} />
+            <div className="mb-12 h-px w-full bg-gradient-to-r from-transparent via-outline-variant/30 to-transparent" />
+          </>
+        )}
         
         {/* TWO COLUMN PORTFOLIO LAYOUT */}
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-10 ${timelineData.length > 0 ? "lg:grid-cols-2" : ""}`}>
           {/* LEFT COLUMN - Career & Background */}
           <div className="space-y-12">
-            <section>
-              <SectionHeader title="Career Milestones" />
-              {timelineData.length > 0 ? (
+            {timelineData.length > 0 && (
+              <section>
+                <SectionHeader title="Career Milestones" />
                 <div className="relative pl-[24px] border-l-[3px] border-outline-variant/20 py-4 space-y-10 my-2">
                   {timelineData.map((node: any, i: number) => (
                     <div key={i} className="relative group">
@@ -410,17 +416,15 @@ export default async function FacultyProfile({ params }: PageProps) {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-xs text-outline italic">No milestones recorded.</p>
-              )}
-            </section>
+              </section>
+            )}
           </div>
 
           {/* RIGHT COLUMN - Research Output & Engagement */}
           <div className="space-y-12">
-            <section>
-              <SectionHeader title="Invited Lectures" count={invitedTalks.length} />
-              {invitedTalks.length > 0 ? (
+            {invitedTalks.length > 0 && (
+              <section>
+                <SectionHeader title="Invited Lectures" count={invitedTalks.length} />
                 <ExpandableList>
                   {invitedTalks.map((talk: any, idx: number) => (
                     <div key={idx} className="mb-4 rounded-2xl border border-outline-variant/20 bg-surface p-6 transition-all hover:border-primary/30 hover:shadow-md">
@@ -439,10 +443,8 @@ export default async function FacultyProfile({ params }: PageProps) {
                     </div>
                   ))}
                 </ExpandableList>
-              ) : (
-                <p className="text-xs text-outline italic">No talks recorded.</p>
-              )}
-            </section>
+              </section>
+            )}
 
             {/* --- PROFESSIONAL CERTIFICATIONS --- */}
             {certifications.length > 0 && (
