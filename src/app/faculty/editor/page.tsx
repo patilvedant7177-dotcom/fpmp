@@ -146,6 +146,7 @@ export default function FacultyEditorPage() {
             if (prefill.department) {
               if (prefill.department === "Electronics & CS") base.department = "Electronics & Computer Science";
               else if (prefill.department === "Mechanical") base.department = "Mechanical Engineering";
+              else if (prefill.department === "H&S" || prefill.department === "Humanities") base.department = "Department of Humanities and Science";
               else base.department = prefill.department;
             }
             if (prefill.experience) base.experience = prefill.experience;
@@ -669,6 +670,7 @@ export default function FacultyEditorPage() {
                         <option>Computer Science & Engineering</option>
                         <option>Mechanical Engineering</option>
                         <option>Computer Engineering</option>
+                        <option>Department of Humanities and Science</option>
                       </select>
                     </div>
                     <div>

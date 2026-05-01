@@ -399,6 +399,7 @@ export default function AdminFacultyPage() {
           <option>Computer Science & Engineering</option>
           <option>Mechanical Engineering</option>
           <option>Computer Engineering</option>
+          <option>Department of Humanities and Science</option>
         </select>
         <select
           className="h-[38px] w-full max-w-[140px] rounded-lg border border-slate-300 bg-white px-3 font-body text-[13px] text-slate-900 shadow-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-primary/10"
@@ -760,6 +761,7 @@ export default function AdminFacultyPage() {
                       <option>Computer Science & Engineering</option>
                       <option>Mechanical Engineering</option>
                       <option>Computer Engineering</option>
+                      <option>Department of Humanities and Science</option>
                     </select>
                   </div>
 
