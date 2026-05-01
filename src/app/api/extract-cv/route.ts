@@ -12,12 +12,19 @@ if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
  * Robust PDF text extraction using pdf-parse (modern version).
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+  const parser = new PDFParse({
+    data: new Uint8Array(buffer),
+    verbosity: 0,
+  });
+
   try {
-    const data = await PDFParse(buffer);
-    return data.text || '';
+    const result = await parser.getText();
+    return result.text || '';
   } catch (error) {
-    console.error('[extract-cv] pdf-parse error:', error);
+    console.error('[extract-cv] PDFParse error:', error);
     throw error;
+  } finally {
+    await parser.destroy().catch(() => {});
   }
 }
 
