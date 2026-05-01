@@ -62,39 +62,40 @@ export default function PublicNavbar() {
               alt="Fr. CRCE Logo" 
               width={240} 
               height={64} 
-              className="h-12 w-auto object-contain md:h-16 lg:h-20"
+              className="h-10 w-auto object-contain md:h-14 lg:h-16"
               priority
             />
           </Link>
         </div>
 
         {/* Mobile Menu Toggle */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-md text-primary"
+            className="flex h-10 w-10 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/5"
+            aria-label="Toggle menu"
           >
-            <span className="material-symbols-outlined">
+            <span className="material-symbols-outlined text-2xl">
               {isMenuOpen ? "close" : "menu"}
             </span>
           </button>
         </div>
 
         {/* Desktop Links */}
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-6 lg:flex">
           <Link 
             href={pathname.startsWith("/faculty/") ? "/directory" : (pathname === "/" ? "/directory" : "/")} 
-            className="flex items-center gap-1 text-sm font-bold text-primary hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1 text-[13px] font-bold text-primary hover:opacity-80 transition-opacity"
           >
             {pathname !== "/" && (
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             )}
             {pathname === "/" ? "Public Directory" : (pathname.startsWith("/faculty/") ? "Back to Directory" : "Back to Home")}
           </Link>
           
           <Link 
             href="/inquiry" 
-            className="hidden sm:flex items-center gap-2 rounded-md border border-primary/20 px-4 py-2.5 text-[13px] font-bold text-primary transition-all hover:bg-primary/5 active:scale-95 shine-button"
+            className="flex items-center gap-2 rounded-md border border-primary/20 px-4 py-2.5 text-[12px] font-bold text-primary transition-all hover:bg-primary/5 active:scale-95 shine-button"
           >
             Track Inquiry
           </Link>
@@ -102,14 +103,14 @@ export default function PublicNavbar() {
           {user ? (
             <Link 
               href={role === 'admin' ? "/admin/dashboard" : "/faculty/dashboard"} 
-              className="hero-gradient rounded-md px-6 py-2.5 text-[13px] font-bold text-on-primary shadow-lg shadow-blue-900/10 transition-all duration-200 hover:scale-95"
+              className="hero-gradient rounded-md px-6 py-2.5 text-[12px] font-bold text-on-primary shadow-lg shadow-blue-900/10 transition-all duration-200 hover:scale-95"
             >
               Dashboard
             </Link>
           ) : (
             <Link 
               href="/login" 
-              className="hero-gradient rounded-md px-6 py-2.5 text-[13px] font-bold text-on-primary shadow-lg shadow-blue-900/10 transition-all duration-200 hover:scale-95"
+              className="hero-gradient rounded-md px-6 py-2.5 text-[12px] font-bold text-on-primary shadow-lg shadow-blue-900/10 transition-all duration-200 hover:scale-95"
             >
               Sign In
             </Link>
@@ -117,46 +118,52 @@ export default function PublicNavbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile/Tablet Menu */}
       {isMenuOpen && (
-        <div className="border-t border-outline-variant/10 bg-surface px-4 py-6 md:hidden">
-          <div className="flex flex-col gap-4">
+        <div className="fixed inset-0 top-[64px] z-40 bg-surface/95 backdrop-blur-xl lg:hidden animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex flex-col gap-2 p-6">
             <Link 
               href={pathname.startsWith("/faculty/") ? "/directory" : (pathname === "/" ? "/directory" : "/")} 
-              className="flex items-center gap-3 text-sm font-bold text-primary"
+              className="flex items-center gap-4 rounded-xl p-4 text-base font-bold text-primary transition-colors hover:bg-primary/5 active:bg-primary/10"
               onClick={() => setIsMenuOpen(false)}
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {pathname === "/" ? "person_search" : "arrow_back"}
-              </span>
-              {pathname === "/" ? "Public Directory" : (pathname.startsWith("/faculty/") ? "Back to Directory" : "Back to Home")}
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/5 text-primary">
+                <span className="material-symbols-outlined">
+                  {pathname === "/" ? "person_search" : "arrow_back"}
+                </span>
+              </div>
+              <span>{pathname === "/" ? "Public Directory" : (pathname.startsWith("/faculty/") ? "Back to Directory" : "Back to Home")}</span>
             </Link>
             
             <Link 
               href="/inquiry" 
-              className="flex items-center gap-3 text-sm font-bold text-primary"
+              className="flex items-center gap-4 rounded-xl p-4 text-base font-bold text-primary transition-colors hover:bg-primary/5 active:bg-primary/10"
               onClick={() => setIsMenuOpen(false)}
             >
-              <span className="material-symbols-outlined text-[20px]">search_check</span>
-              Track Inquiry
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/5 text-primary">
+                <span className="material-symbols-outlined">search_check</span>
+              </div>
+              <span>Track Inquiry</span>
             </Link>
 
-            <div className="mt-2 h-px w-full bg-outline-variant/20" />
+            <div className="my-4 h-px w-full bg-outline-variant/20" />
 
             {user ? (
               <Link 
                 href={role === 'admin' ? "/admin/dashboard" : "/faculty/dashboard"} 
-                className="hero-gradient flex items-center justify-center rounded-md py-3 text-sm font-bold text-on-primary"
+                className="hero-gradient flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-on-primary shadow-lg shadow-primary/20"
                 onClick={() => setIsMenuOpen(false)}
               >
+                <span className="material-symbols-outlined">dashboard</span>
                 Go to Dashboard
               </Link>
             ) : (
               <Link 
                 href="/login" 
-                className="hero-gradient flex items-center justify-center rounded-md py-3 text-sm font-bold text-on-primary"
+                className="hero-gradient flex items-center justify-center gap-2 rounded-xl py-4 text-base font-bold text-on-primary shadow-lg shadow-primary/20"
                 onClick={() => setIsMenuOpen(false)}
               >
+                <span className="material-symbols-outlined">login</span>
                 Sign In
               </Link>
             )}

@@ -105,16 +105,28 @@ export default function HomePage() {
       <PublicNavbar />
 
       <main className="min-h-screen">
-        <div className="flex min-h-screen flex-col lg:flex-row items-stretch pt-16">
-          <section className="z-10 flex w-full flex-col justify-center bg-surface px-6 py-12 md:px-12 lg:w-[45%] lg:px-24 lg:py-20">
-            <div className="max-w-xl">
+        <div className="relative flex min-h-screen flex-col lg:flex-row items-stretch pt-16">
+          {/* Mobile Background Image (Seen clearly "behind" on mobile) */}
+          <div className="absolute inset-0 z-0 lg:hidden">
+            <Image
+              src={CAMPUS_IMAGE_SRC}
+              alt="University Campus Background"
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-white/20" />
+          </div>
+
+          <section className="relative z-10 flex w-full flex-col justify-center px-4 py-10 md:px-12 lg:w-[45%] lg:bg-surface lg:px-24 lg:py-20">
+            <div className="max-w-xl rounded-2xl bg-white/80 p-6 shadow-2xl shadow-black/5 backdrop-blur-xl md:p-10 lg:max-w-none lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
               <span className="reveal reveal-1 font-label mb-4 block text-[10px] font-bold uppercase tracking-[0.15em] text-primary md:mb-6 md:text-xs">
                 Curating Academic Excellence
               </span>
-              <h1 className="reveal reveal-2 font-headline mb-6 text-[2.5rem] font-extrabold leading-[1.1] tracking-tighter text-primary md:mb-8 md:text-[3.5rem]">
+              <h1 className="reveal reveal-2 font-headline mb-6 text-fluid-h1 font-extrabold leading-[1.1] tracking-tighter text-primary md:mb-8">
                 Faculty & Staff
-                <br />
-                Information <span className="inline-block hero-text-gradient">Portal.</span>
+                <span className="block md:inline"> Information </span>
+                <span className="inline-block hero-text-gradient">Portal.</span>
               </h1>
               <p className="reveal reveal-3 font-body mb-8 max-w-md text-base text-secondary md:mb-12 md:text-lg">
                 The definitive enterprise ecosystem for engineering
@@ -122,7 +134,7 @@ export default function HomePage() {
                 excellence. A unified platform bridging the gap between raw
                 academic data and institutional transparency
               </p>
-              <div className="reveal reveal-4 mb-12 md:mb-20">
+              <div className="reveal reveal-4 mb-12 md:mb-16">
                 <Link
                   href="/directory"
                   className="hero-gradient inline-flex items-center gap-3 rounded-md px-8 py-4 text-base font-bold text-on-primary shadow-xl shadow-primary/20 transition-transform hover:scale-105 md:px-10 md:py-5 md:text-lg"
@@ -157,19 +169,18 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section className="relative hidden min-h-[800px] flex-1 overflow-hidden bg-surface-container-high lg:flex">
+          <section className="relative hidden flex-1 overflow-hidden bg-surface-container-high lg:flex lg:min-h-[800px]">
             <div className="absolute inset-0 z-0">
               <Image
                 src={CAMPUS_IMAGE_SRC}
                 alt="University Campus Architecture"
                 fill
                 className="bg-drift object-cover grayscale-[20%] contrast-[1.1]"
-                sizes="(max-width: 1024px) 100vw, 55vw"
+                sizes="55vw"
                 priority
               />
               <div className="absolute inset-0 bg-primary/10 mix-blend-multiply" />
               <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent hidden lg:block" />
-              <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-surface to-transparent lg:hidden" />
             </div>
             <div className="relative z-10 flex w-full flex-col items-center justify-center gap-6 px-6 py-20 lg:items-end lg:pr-24 lg:py-0">
               <div className="group w-full max-w-sm cursor-pointer reveal reveal-3">
