@@ -447,6 +447,8 @@ export default function AdminFacultyPage() {
           <option>Professor</option>
           <option>Associate Professor</option>
           <option>Assistant Professor</option>
+          <option>Sr Laboratory Assistant</option>
+          <option>Laboratory Assistant</option>
         </select>
       </div>
 
@@ -808,6 +810,8 @@ export default function AdminFacultyPage() {
                       <option>Professor</option>
                       <option>Associate Professor</option>
                       <option>Assistant Professor</option>
+                      <option>Sr Laboratory Assistant</option>
+                      <option>Laboratory Assistant</option>
                     </select>
                   </div>
                 </div>
