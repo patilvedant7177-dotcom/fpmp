@@ -53,7 +53,7 @@ export default function PublicNavbar() {
   }, []);
 
   return (
-    <nav className="fixed top-0 z-50 w-full glass-nav border-b border-outline-variant/20 font-headline tracking-tight shadow-sm antialiased">
+    <nav className="fixed top-0 z-50 w-full bg-surface border-b border-outline-variant/20 font-headline tracking-tight shadow-sm antialiased lg:glass-nav lg:backdrop-blur-xl">
       <div className="mx-auto flex max-w-full items-center justify-between px-4 py-2 md:px-12">
         <div className="flex items-center gap-4 lg:gap-8 lg:ml-4">
           <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105 shrink-0">

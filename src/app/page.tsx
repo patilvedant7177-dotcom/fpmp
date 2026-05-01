@@ -105,7 +105,7 @@ export default function HomePage() {
       <PublicNavbar />
 
       <main className="min-h-screen">
-        <div className="relative flex min-h-screen flex-col lg:flex-row items-stretch pt-16">
+        <div className="relative flex min-h-screen flex-col lg:flex-row items-stretch pt-24 lg:pt-16">
           {/* Mobile Background Image (Seen clearly "behind" on mobile) */}
           <div className="absolute inset-0 z-0 lg:hidden">
             <Image
@@ -115,11 +115,11 @@ export default function HomePage() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-white/20" />
+            <div className="absolute inset-0 bg-white/40" />
           </div>
 
-          <section className="relative z-10 flex w-full flex-col justify-center px-4 py-10 md:px-12 lg:w-[45%] lg:bg-surface lg:px-24 lg:py-20">
-            <div className="max-w-xl rounded-2xl bg-white/80 p-6 shadow-2xl shadow-black/5 backdrop-blur-xl md:p-10 lg:max-w-none lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
+          <section className="relative z-10 flex w-full flex-col justify-center px-4 py-8 md:px-12 lg:w-[45%] lg:bg-surface lg:px-24 lg:py-20">
+            <div className="max-w-xl rounded-3xl border border-white/40 bg-white/70 p-8 shadow-2xl shadow-primary/5 backdrop-blur-2xl lg:max-w-none lg:rounded-none lg:border-none lg:bg-transparent lg:p-0 lg:shadow-none lg:backdrop-blur-none">
               <span className="reveal reveal-1 font-label mb-4 block text-[10px] font-bold uppercase tracking-[0.15em] text-primary md:mb-6 md:text-xs">
                 Curating Academic Excellence
               </span>
@@ -169,7 +169,8 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section className="relative flex flex-col items-center justify-center bg-surface-container-low px-6 py-16 lg:min-h-[800px] lg:flex-1 lg:items-end lg:bg-surface-container-high lg:px-0 lg:py-0">
+          <section className="relative flex flex-col items-center justify-center bg-surface-container px-6 py-20 lg:min-h-[800px] lg:flex-1 lg:items-end lg:bg-surface-container-high lg:px-0 lg:py-0">
+            <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent to-surface-container/50 lg:hidden" />
             {/* Desktop-only Background Image */}
             <div className="absolute inset-0 z-0 hidden lg:block">
               <Image
