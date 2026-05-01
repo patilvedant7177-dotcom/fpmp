@@ -1,31 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
-import { PDFParse } from 'pdf-parse';
-
-// DOM stubs for pdfjs-dist compatibility in serverless environments
-const g = globalThis as any;
-if (typeof g.DOMMatrix === "undefined") g.DOMMatrix = class DOMMatrix {};
-if (typeof g.ImageData === "undefined") g.ImageData = class ImageData {};
-if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
+import pdf from 'pdf-parse';
 
 /**
- * Robust PDF text extraction using pdf-parse (modern version).
+ * Robust PDF text extraction using classic pdf-parse.
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({
-    data: new Uint8Array(buffer),
-    verbosity: 0,
-    disableWorker: true,
-  });
-
   try {
-    const result = await parser.getText();
-    return result.text || '';
+    const data = await pdf(buffer);
+    return data.text || '';
   } catch (error) {
-    console.error('[extract-cv] PDFParse error:', error);
+    console.error('[extract-cv] PDF extraction error:', error);
     throw error;
-  } finally {
-    await parser.destroy().catch(() => {});
   }
 }
 
