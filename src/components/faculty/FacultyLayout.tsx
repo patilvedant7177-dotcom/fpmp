@@ -15,6 +15,7 @@ import {
   Shield,
   User,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -118,6 +119,7 @@ export default function FacultyLayout({ children }: FacultyLayoutProps) {
       icon: MessageSquare,
       badge: unreadCount,
     },
+    { name: "Settings", href: "/faculty/settings", icon: Settings },
   ];
 
   const portalItems = [
@@ -286,6 +288,13 @@ export default function FacultyLayout({ children }: FacultyLayoutProps) {
                 {userName}
               </span>
             </div>
+            <Link
+              href="/faculty/settings"
+              className="shine-button flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-surface-container-highest border border-outline-variant/30 font-headline text-[12px] font-bold text-primary transition-all hover:scale-105 hover:bg-primary-container"
+              title="Settings"
+            >
+              <Settings size={16} />
+            </Link>
             <div
               onClick={handleLogout}
               className="shine-button flex h-[32px] w-[32px] cursor-pointer items-center justify-center rounded-full bg-surface-container-highest border border-outline-variant/30 font-headline text-[12px] font-bold text-primary transition-all hover:scale-105 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
