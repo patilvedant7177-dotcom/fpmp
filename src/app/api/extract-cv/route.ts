@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
           content: `${EXTRACTION_SCHEMA}\n\nCV Content:\n${truncatedText}`,
         },
       ],
-      max_tokens: 1500,
+      response_format: { type: 'json_object' },
+      max_tokens: 2500,
       temperature: 0,
     });
 
