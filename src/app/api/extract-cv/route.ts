@@ -11,17 +11,11 @@ if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
 /**
  * Robust PDF text extraction using pdf-parse (modern version).
  */
-// Set worker to a CDN URL to avoid bundling issues with Turbopack/Vercel
-try {
-  PDFParse.setWorker('https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/pdf.worker.min.mjs');
-} catch (e) {
-  console.warn('[extract-cv] Failed to set worker CDN:', e);
-}
-
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   const parser = new PDFParse({
     data: new Uint8Array(buffer),
     verbosity: 0,
+    disableWorker: true,
   });
 
   try {
