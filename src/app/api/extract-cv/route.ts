@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Trim to stay within Groq's TPM limit (~20k chars ≈ ~5k tokens for free-tier 12k TPM)
-    const truncatedText = pdfText.slice(0, 20000);
+    // Trim aggressively to stay within Groq's TPM limits (~10k chars ≈ ~2.5k tokens)
+    const truncatedText = pdfText.slice(0, 10000);
 
     // ── 4. Call Groq API ──────────────────────────────────────────────────
     const groq = new Groq({ apiKey });
