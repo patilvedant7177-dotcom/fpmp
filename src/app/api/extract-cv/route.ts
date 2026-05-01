@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Trim aggressively to stay within Groq's TPM limits (~10k chars ≈ ~2.5k tokens)
-    const truncatedText = pdfText.slice(0, 10000);
+    // Trim aggressively to stay within Groq's TPM limits (~5k chars ≈ ~1.2k tokens)
+    const truncatedText = pdfText.slice(0, 5000);
 
     // ── 4. Call Groq API ──────────────────────────────────────────────────
     const groq = new Groq({ apiKey });
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
           content: `${EXTRACTION_SCHEMA}\n\nCV Content:\n${truncatedText}`,
         },
       ],
-      max_tokens: 3000,
+      max_tokens: 1500,
       temperature: 0,
     });
 
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     if (message.includes('413') || message.toLowerCase().includes('request too large') || message.toLowerCase().includes('tokens per minute')) {
       return NextResponse.json(
-        { error: 'Your CV is too large for AI processing. Try a shorter or text-only PDF (under 5 pages is ideal).' },
+        { error: 'Your CV is too large for AI processing. Try a shorter or text-only PDF. (Debug: ' + message + ')' },
         { status: 413 },
       );
     }
