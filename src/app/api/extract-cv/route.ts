@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const groq = new Groq({ apiKey });
 
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         {
@@ -175,6 +175,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Your CV is too large for AI processing. Try a shorter or text-only PDF. (Debug: ' + message + ')' },
         { status: 413 },
+      );
+    }
+
+    if (message.includes('json_validate_failed') || message.includes('failed_generation')) {
+      return NextResponse.json(
+        { error: 'The AI struggled to format your CV correctly. Please try again or use a simpler PDF layout.' },
+        { status: 422 },
       );
     }
 
