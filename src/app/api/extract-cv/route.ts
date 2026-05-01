@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { PDFParse } from 'pdf-parse';
 
+// DOM stubs for pdfjs-dist compatibility in serverless environments
+const g = globalThis as any;
+if (typeof g.DOMMatrix === "undefined") g.DOMMatrix = class DOMMatrix {};
+if (typeof g.ImageData === "undefined") g.ImageData = class ImageData {};
+if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const SYSTEM_PROMPT =
@@ -61,8 +67,9 @@ export async function POST(request: NextRequest) {
     // ── 2. Validate API key ───────────────────────────────────────────────
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
+      console.error('[extract-cv] GROQ_API_KEY is missing in environment variables');
       return NextResponse.json(
-        { error: 'Server configuration error: GROQ_API_KEY is not set.' },
+        { error: 'API Key Missing: Please set GROQ_API_KEY in your Vercel project settings.' },
         { status: 500 },
       );
     }
@@ -73,14 +80,17 @@ export async function POST(request: NextRequest) {
 
     let pdfText: string;
     try {
+      console.log('[extract-cv] Starting PDF text extraction...');
       const parser = new PDFParse({ data: buffer });
       const pdfData = await parser.getText();
       pdfText = pdfData.text;
       await parser.destroy();
+      console.log(`[extract-cv] Extracted ${pdfText.length} characters`);
     } catch (parseErr) {
-      console.error('[extract-cv] PDF parsing error:', parseErr);
+      const errMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      console.error('[extract-cv] PDF parsing error:', errMsg);
       return NextResponse.json(
-        { error: 'Failed to parse PDF. Ensure the file is a valid, text-based PDF.' },
+        { error: `PDF Parse Error: ${errMsg}. Try a different PDF format.` },
         { status: 422 },
       );
     }
