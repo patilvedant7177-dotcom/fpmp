@@ -38,7 +38,15 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
   const [activeKeyword, setActiveKeyword] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const depts = useMemo(() => ["All", ...Array.from(new Set(facultyData.map((f) => f.department).filter(Boolean)))], [facultyData]);
+  const depts = [
+    "All",
+    "Electronics and Computer Science",
+    "Computer Engineering",
+    "Computer Science & Engineering",
+    "Mechanical Engineering",
+    "Humanities and Science",
+    "Administration"
+  ];
   const designations = useMemo(() => [
     "All",
     ...Array.from(new Set(facultyData.map((f) => f.designation).filter(Boolean))),

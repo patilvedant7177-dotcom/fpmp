@@ -126,7 +126,7 @@ export default function AdminFacultyPage() {
   const [inviteData, setInviteData] = useState({
     name: "",
     email: "",
-    dept: "Electronics & Computer Science",
+    dept: "Electronics and Computer Science",
     desig: "Assistant Professor"
   });
   const [isInviting, setIsInviting] = useState(false);
@@ -358,7 +358,7 @@ export default function AdminFacultyPage() {
             {stats.total}
           </div>
           <div className="mt-1 font-body text-[12px] text-slate-500">
-            Across 6 departments
+            Across all departments
           </div>
         </div>
 
@@ -420,11 +420,12 @@ export default function AdminFacultyPage() {
           onChange={(e) => setDeptFilter(e.target.value)}
         >
           <option>All Departments</option>
-          <option>Electronics & Computer Science</option>
+          <option>Electronics and Computer Science</option>
+          <option>Computer Engineering</option>
           <option>Computer Science & Engineering</option>
           <option>Mechanical Engineering</option>
-          <option>Computer Engineering</option>
-          <option>Department of Humanities and Science</option>
+          <option>Humanities and Science</option>
+          <option>Administration</option>
         </select>
         <select
           className="h-[38px] w-full max-w-[140px] rounded-lg border border-slate-300 bg-white px-3 font-body text-[13px] text-slate-900 shadow-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-primary/10"
@@ -443,6 +444,7 @@ export default function AdminFacultyPage() {
           onChange={(e) => setDesignFilter(e.target.value)}
         >
           <option>All Designations</option>
+          <option>Principal</option>
           <option>Head of Department</option>
           <option>Professor</option>
           <option>Associate Professor</option>
@@ -791,11 +793,12 @@ export default function AdminFacultyPage() {
                       onChange={(e) => setInviteData({...inviteData, dept: e.target.value})}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                     >
-                      <option>Electronics & Computer Science</option>
+                      <option>Electronics and Computer Science</option>
+                      <option>Computer Engineering</option>
                       <option>Computer Science & Engineering</option>
                       <option>Mechanical Engineering</option>
-                      <option>Computer Engineering</option>
-                      <option>Department of Humanities and Science</option>
+                      <option>Humanities and Science</option>
+                      <option>Administration</option>
                     </select>
                   </div>
 
@@ -806,6 +809,7 @@ export default function AdminFacultyPage() {
                       onChange={(e) => setInviteData({...inviteData, desig: e.target.value})}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-body text-[14px] text-slate-900 outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                     >
+                      <option>Principal</option>
                       <option>Head of Department</option>
                       <option>Professor</option>
                       <option>Associate Professor</option>
@@ -864,7 +868,7 @@ export default function AdminFacultyPage() {
                   onClick={() => {
                     setIsInviteModalOpen(false);
                     setInvitationResult(null);
-                    setInviteData({ name: "", email: "", dept: "Electronics & Computer Science", desig: "Assistant Professor" });
+                    setInviteData({ name: "", email: "", dept: "Electronics and Computer Science", desig: "Assistant Professor" });
                     window.location.reload();
                   }}
                   className="w-full rounded-lg bg-slate-900 py-3 font-headline text-[14px] font-bold text-white shadow-lg transition-all hover:bg-slate-800"

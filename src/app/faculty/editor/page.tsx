@@ -33,7 +33,7 @@ export default function FacultyEditorPage() {
   const [formData, setFormData] = useState<any>({
     name: "",
     designation: "",
-    department: "Electronics & Computer Science",
+    department: "Electronics and Computer Science",
     experience: "",
     email: "",
     phone: "",
@@ -84,7 +84,7 @@ export default function FacultyEditorPage() {
         const base = {
           name: profileData.name || "",
           designation: profileData.designation || "",
-          department: profileData.department || "Electronics & Computer Science",
+          department: profileData.department || "Electronics and Computer Science",
           experience: profileData.experience || "",
           email: profileData.email || user.email || "",
           phone: profileData.phone || "",
@@ -145,8 +145,8 @@ export default function FacultyEditorPage() {
             if (prefill.designation) base.designation = prefill.designation;
             if (prefill.department) {
               const dLower = prefill.department.toLowerCase();
-              if (dLower.includes("electronics") || dLower.includes("ecs") || dLower.includes("extc")) {
-                base.department = "Electronics & Computer Science";
+              if (dLower.includes("electronics") || dLower.includes("ecs") || dLower.includes("extc") || dLower.includes("telecommunication")) {
+                base.department = "Electronics and Computer Science";
               } else if (dLower.includes("computer science") || dLower.includes("cse")) {
                 base.department = "Computer Science & Engineering";
               } else if (dLower.includes("mechanical") || dLower.includes("mech")) {
@@ -154,9 +154,9 @@ export default function FacultyEditorPage() {
               } else if (dLower.includes("computer engineering") || dLower.includes("ce")) {
                 base.department = "Computer Engineering";
               } else if (dLower.includes("humanities") || dLower.includes("science") || dLower.includes("h&s")) {
-                base.department = "Department of Humanities and Science";
+                base.department = "Humanities and Science";
               } else {
-                base.department = "Electronics & Computer Science";
+                base.department = "Electronics and Computer Science";
               }
             }
             if (prefill.experience) base.experience = prefill.experience;
@@ -666,12 +666,19 @@ export default function FacultyEditorPage() {
                     </div>
                     <div>
                       <label className="font-label text-[11px] font-bold uppercase tracking-wider text-outline block mb-1.5">Designation</label>
-                      <input
-                        type="text"
+                      <select
                         value={formData.designation}
                         onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                         className="w-full border border-outline-variant rounded-lg bg-surface px-3 py-2 font-body text-[13px] text-primary focus:border-primary outline-none focus:ring-2 focus:ring-primary/10 transition-all"
-                      />
+                      >
+                        <option>Principal</option>
+                        <option>Head of Department</option>
+                        <option>Professor</option>
+                        <option>Associate Professor</option>
+                        <option>Assistant Professor</option>
+                        <option>Sr Laboratory Assistant</option>
+                        <option>Laboratory Assistant</option>
+                      </select>
                     </div>
                     <div>
                       <label className="font-label text-[11px] font-bold uppercase tracking-wider text-outline block mb-1.5">Department</label>
@@ -680,11 +687,12 @@ export default function FacultyEditorPage() {
                         onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                         className="w-full border border-outline-variant rounded-lg bg-surface px-3 py-2 font-body text-[13px] text-primary focus:border-primary outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                       >
-                        <option>Electronics & Computer Science</option>
+                        <option>Electronics and Computer Science</option>
+                        <option>Computer Engineering</option>
                         <option>Computer Science & Engineering</option>
                         <option>Mechanical Engineering</option>
-                        <option>Computer Engineering</option>
-                        <option>Department of Humanities and Science</option>
+                        <option>Humanities and Science</option>
+                        <option>Administration</option>
                       </select>
                     </div>
                     <div>

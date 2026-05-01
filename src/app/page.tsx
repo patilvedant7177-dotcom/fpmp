@@ -21,8 +21,7 @@ export default function HomePage() {
       const { data: profiles } = await supabase.from('faculty_profiles').select('department');
       if (profiles) {
         const totalFaculty = profiles.length;
-        const uniqueDepts = new Set(profiles.map(p => p.department).filter(Boolean)).size;
-        setCounts({ faculty: totalFaculty, departments: uniqueDepts });
+        setCounts({ faculty: totalFaculty, departments: 5 });
       }
 
       // Fetch user - use getSession for faster UI update
