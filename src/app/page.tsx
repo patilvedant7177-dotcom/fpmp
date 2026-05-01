@@ -169,8 +169,9 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section className="relative hidden flex-1 overflow-hidden bg-surface-container-high lg:flex lg:min-h-[800px]">
-            <div className="absolute inset-0 z-0">
+          <section className="relative flex flex-col items-center justify-center bg-surface-container-low px-6 py-16 lg:min-h-[800px] lg:flex-1 lg:items-end lg:bg-surface-container-high lg:px-0 lg:py-0">
+            {/* Desktop-only Background Image */}
+            <div className="absolute inset-0 z-0 hidden lg:block">
               <Image
                 src={CAMPUS_IMAGE_SRC}
                 alt="University Campus Architecture"
@@ -180,9 +181,10 @@ export default function HomePage() {
                 priority
               />
               <div className="absolute inset-0 bg-primary/10 mix-blend-multiply" />
-              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent hidden lg:block" />
+              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent" />
             </div>
-            <div className="relative z-10 flex w-full flex-col items-center justify-center gap-6 px-6 py-20 lg:items-end lg:pr-24 lg:py-0">
+
+            <div className="relative z-10 flex w-full max-w-sm flex-col gap-6 lg:max-w-none lg:items-end lg:pr-24">
               <div className="group w-full max-w-sm cursor-pointer reveal reveal-3">
                 <div className="card-hover-depth rounded-xl bg-surface-container-lowest/90 p-6 shadow-2xl shadow-black/5 backdrop-blur-md md:p-8">
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-fixed text-on-primary-fixed md:mb-6 md:h-12 md:w-12">
