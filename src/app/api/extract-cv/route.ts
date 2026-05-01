@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Trim aggressively to stay within Groq's TPM limits (~5k chars ≈ ~1.2k tokens)
-    const truncatedText = pdfText.slice(0, 5000);
+    // Allow up to 30,000 characters (~7.5k tokens, roughly 8-10 pages) to capture the entire resume
+    const truncatedText = pdfText.slice(0, 30000);
 
     // ── 4. Call Groq API ──────────────────────────────────────────────────
     const groq = new Groq({ apiKey });
