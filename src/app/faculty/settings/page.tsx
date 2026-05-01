@@ -6,6 +6,7 @@ import FacultyLayout from "@/components/faculty/FacultyLayout";
 import { KeyRound, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function SettingsPage() {
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +31,20 @@ export default function SettingsPage() {
     setIsSubmitting(true);
 
     try {
+      // 1. Verify old password by attempting a sign-in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !user.email) throw new Error("User not found");
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword,
+      });
+
+      if (signInError) {
+        throw new Error("Invalid old password. Please try again.");
+      }
+
+      // 2. Proceed with update if verification succeeded
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -37,6 +52,7 @@ export default function SettingsPage() {
       if (updateError) throw updateError;
 
       setSuccess("Password updated successfully!");
+      setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: any) {
@@ -71,6 +87,20 @@ export default function SettingsPage() {
               </div>
 
               <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-bold uppercase tracking-wider text-outline font-label">
+                    Current Password (Temporary or Old)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    className="w-full rounded-lg border border-outline-variant/50 bg-surface px-4 py-2.5 text-[14px] text-primary focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all font-body"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-[12px] font-bold uppercase tracking-wider text-outline font-label">
