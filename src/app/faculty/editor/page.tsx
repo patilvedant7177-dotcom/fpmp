@@ -144,10 +144,20 @@ export default function FacultyEditorPage() {
             if (prefill.name) base.name = prefill.name;
             if (prefill.designation) base.designation = prefill.designation;
             if (prefill.department) {
-              if (prefill.department === "Electronics & CS") base.department = "Electronics & Computer Science";
-              else if (prefill.department === "Mechanical") base.department = "Mechanical Engineering";
-              else if (prefill.department === "H&S" || prefill.department === "Humanities") base.department = "Department of Humanities and Science";
-              else base.department = prefill.department;
+              const dLower = prefill.department.toLowerCase();
+              if (dLower.includes("electronics") || dLower.includes("ecs") || dLower.includes("extc")) {
+                base.department = "Electronics & Computer Science";
+              } else if (dLower.includes("computer science") || dLower.includes("cse")) {
+                base.department = "Computer Science & Engineering";
+              } else if (dLower.includes("mechanical") || dLower.includes("mech")) {
+                base.department = "Mechanical Engineering";
+              } else if (dLower.includes("computer engineering") || dLower.includes("ce")) {
+                base.department = "Computer Engineering";
+              } else if (dLower.includes("humanities") || dLower.includes("science") || dLower.includes("h&s")) {
+                base.department = "Department of Humanities and Science";
+              } else {
+                base.department = "Electronics & Computer Science";
+              }
             }
             if (prefill.experience) base.experience = prefill.experience;
             if (prefill.email) base.email = prefill.email;
@@ -323,6 +333,10 @@ export default function FacultyEditorPage() {
 
   const handleSubmitForReview = async () => {
     if (!profile) return;
+    
+    // Save the current form data first
+    await handleSaveTab();
+    
     setIsSaving(true);
     try {
       // 1. Update Profile Status to approved so it goes to public directory immediately

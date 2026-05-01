@@ -38,10 +38,10 @@ export default function DirectoryClient({ facultyData }: { facultyData: FacultyM
   const [activeKeyword, setActiveKeyword] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const depts = useMemo(() => ["All", ...Array.from(new Set(facultyData.map((f) => f.department)))], [facultyData]);
+  const depts = useMemo(() => ["All", ...Array.from(new Set(facultyData.map((f) => f.department).filter(Boolean)))], [facultyData]);
   const designations = useMemo(() => [
     "All",
-    ...Array.from(new Set(facultyData.map((f) => f.designation))),
+    ...Array.from(new Set(facultyData.map((f) => f.designation).filter(Boolean))),
   ], [facultyData]);
 
   const dynamicKeywords = useMemo(() => {
