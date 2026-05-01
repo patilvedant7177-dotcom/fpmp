@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { PDFParse } from 'pdf-parse';
 
 // DOM stubs for pdfjs-dist compatibility in serverless environments
 const g = globalThis as any;
@@ -8,33 +9,16 @@ if (typeof g.ImageData === "undefined") g.ImageData = class ImageData {};
 if (typeof g.Path2D === "undefined") g.Path2D = class Path2D {};
 
 /**
- * Robust PDF text extraction using pdfjs-dist legacy build (Vercel friendly).
+ * Robust PDF text extraction using pdf-parse (modern version).
  */
 async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as any;
-  
-  // Configure worker for Node.js environment
-  if (pdfjs?.GlobalWorkerOptions && typeof require !== 'undefined') {
-    try {
-      const workerFsPath = require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs");
-      pdfjs.GlobalWorkerOptions.workerSrc = workerFsPath;
-    } catch (e) {
-      console.warn('[extract-cv] Worker resolution failed, falling back to main thread:', e);
-    }
+  try {
+    const data = await PDFParse(buffer);
+    return data.text || '';
+  } catch (error) {
+    console.error('[extract-cv] pdf-parse error:', error);
+    throw error;
   }
-
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
-  const doc = await loadingTask.promise;
-  let fullText = '';
-
-  for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
-    const page = await doc.getPage(pageNum);
-    const content = await page.getTextContent();
-    const strings = (content.items as any[]).map(item => item.str || '');
-    fullText += strings.join(' ') + '\n';
-  }
-
-  return fullText;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
